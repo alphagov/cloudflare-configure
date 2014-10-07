@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"reflect"
 )
 
 type Config map[string]interface{}
@@ -35,17 +36,21 @@ func main() {
 		authKey    = flag.String("key", "", "Authentication key")
 		zoneID     = flag.String("zone", "", "Zone ID")
 		configFile = flag.String("file", "cloudflare_zone.json", "Config file")
-		download   = flag.Bool("download", false, "Download config")
+		download   = flag.Bool("download", false, "Download configuration")
 	)
 
 	flag.Parse()
 
+	settings := getSettings(*zoneID, *authEmail, *authKey)
+	config := convertToConfig(settings)
+
 	if *download {
-		settings := getSettings(*zoneID, *authEmail, *authKey)
-		config := convertToConfig(settings)
+		log.Println("Saving configuration..")
 		writeConfig(config, *configFile)
 	} else {
-		log.Fatalln("Save not implemented")
+		log.Println("Comparing and updating configuration..")
+		configDesired := readConfig(*configFile)
+		compareConfig(config, configDesired)
 	}
 }
 
@@ -106,5 +111,39 @@ func writeConfig(config Config, file string) {
 	err = ioutil.WriteFile(file, bs, 0644)
 	if err != nil {
 		log.Fatalln("Writing config file failed:", err)
+	}
+}
+
+func readConfig(file string) Config {
+	bs, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Fatalln("Reading config file failed:", err)
+	}
+
+	var config Config
+	err = json.Unmarshal(bs, &config)
+	if err != nil {
+		log.Fatalln("Parsing config file as JSON failed:", err)
+	}
+
+	return config
+}
+
+func compareConfig(configActual, configDesired Config) {
+	if reflect.DeepEqual(configActual, configDesired) {
+		log.Println("No config changes to make")
+		return
+	}
+
+	for key, valActual := range configActual {
+		if valDesired, ok := configDesired[key]; ok {
+			if reflect.DeepEqual(valActual, valDesired) {
+				continue
+			}
+
+			log.Println("Change:", key, valActual, "->", valDesired)
+		} else {
+			log.Println("Not in config:", key)
+		}
 	}
 }
