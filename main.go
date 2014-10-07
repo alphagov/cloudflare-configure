@@ -142,15 +142,17 @@ func compareConfig(configActual, configDesired Config) {
 		return
 	}
 
-	for key, valActual := range configActual {
-		if valDesired, ok := configDesired[key]; ok {
-			if reflect.DeepEqual(valActual, valDesired) {
-				continue
-			}
+	for key, val := range configDesired {
+		if _, ok := configActual[key]; !ok {
+			log.Println("Missing from remote config:", key, val)
+		}
+	}
 
-			log.Println("Change:", key, valActual, "->", valDesired)
-		} else {
-			log.Println("Not in config:", key)
+	for key, valActual := range configActual {
+		if valDesired, ok := configDesired[key]; !ok {
+			log.Println("Missing from local config:", key, valActual)
+		} else if !reflect.DeepEqual(valActual, valDesired) {
+			log.Println("Changing setting:", key, valActual, "->", valDesired)
 		}
 	}
 }
