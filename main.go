@@ -78,13 +78,13 @@ func makeRequest(req *http.Request) Response {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalln("Incorrect HTTP response code:", resp.StatusCode)
-	}
-
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		log.Fatalln("Reading response body failed:", err)
+	}
+
+	if resp.StatusCode != http.StatusOK {
+		log.Fatalln("Incorrect HTTP response code", resp.StatusCode, ":", string(body))
 	}
 
 	var parsedResp Response
