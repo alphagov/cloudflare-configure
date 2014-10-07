@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -24,6 +25,10 @@ type ResponseSetting struct {
 	Value      interface{}
 	ModifiedOn string `json:"modified_on"`
 	Editable   bool
+}
+
+type RequestSetting struct {
+	Value interface{} `json:"value"`
 }
 
 const rootURL = "https://api.cloudflare.com/v4"
@@ -52,8 +57,24 @@ func main() {
 	} else {
 		log.Println("Comparing and updating configuration..")
 		configDesired := readConfig(*configFile)
-		compareConfig(config, configDesired)
+		compareAndUpdate(config, configDesired)
 	}
+}
+
+func changeSetting(id string, value interface{}) {
+	url := fmt.Sprintf("%s/zones/%s/settings/%s", rootURL, *zoneID, id)
+
+	body, err := json.Marshal(RequestSetting{value})
+	if err != nil {
+		log.Fatalln("Parsing request JSON failed:", err)
+	}
+
+	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(body))
+	if err != nil {
+		log.Fatalln("Constructing request failed:", err)
+	}
+
+	_ = makeRequest(req)
 }
 
 func getSettings() []ResponseSetting {
@@ -136,7 +157,7 @@ func readConfig(file string) Config {
 	return config
 }
 
-func compareConfig(configActual, configDesired Config) {
+func compareAndUpdate(configActual, configDesired Config) {
 	if reflect.DeepEqual(configActual, configDesired) {
 		log.Println("No config changes to make")
 		return
@@ -153,6 +174,7 @@ func compareConfig(configActual, configDesired Config) {
 			log.Println("Missing from local config:", key, valActual)
 		} else if !reflect.DeepEqual(valActual, valDesired) {
 			log.Println("Changing setting:", key, valActual, "->", valDesired)
+			changeSetting(key, valDesired)
 		}
 	}
 }
