@@ -28,20 +28,22 @@ type ResponseSetting struct {
 
 const rootURL = "https://api.cloudflare.com/v4"
 
-var httpClient = &http.Client{}
+var (
+	httpClient = &http.Client{}
+	authEmail  = flag.String("email", "", "Authentication email address")
+	authKey    = flag.String("key", "", "Authentication key")
+	zoneID     = flag.String("zone", "", "Zone ID")
+)
 
 func main() {
 	var (
-		authEmail  = flag.String("email", "", "Authentication email address")
-		authKey    = flag.String("key", "", "Authentication key")
-		zoneID     = flag.String("zone", "", "Zone ID")
 		configFile = flag.String("file", "cloudflare_zone.json", "Config file")
 		download   = flag.Bool("download", false, "Download configuration")
 	)
 
 	flag.Parse()
 
-	settings := getSettings(*zoneID, *authEmail, *authKey)
+	settings := getSettings()
 	config := convertToConfig(settings)
 
 	if *download {
@@ -54,16 +56,21 @@ func main() {
 	}
 }
 
-func getSettings(zoneID, authEmail, authKey string) []ResponseSetting {
-	url := fmt.Sprintf("%s/zones/%s/settings", rootURL, zoneID)
+func getSettings() []ResponseSetting {
+	url := fmt.Sprintf("%s/zones/%s/settings", rootURL, *zoneID)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatalln("Constructing request failed:", err)
 	}
 
-	req.Header.Set("X-Auth-Email", authEmail)
-	req.Header.Set("X-Auth-Key", authKey)
+	resp := makeRequest(req)
+	return resp.Result
+}
+
+func makeRequest(req *http.Request) Response {
+	req.Header.Set("X-Auth-Email", *authEmail)
+	req.Header.Set("X-Auth-Key", *authKey)
 
 	resp, err := httpClient.Do(req)
 	if err != nil {
@@ -90,7 +97,7 @@ func getSettings(zoneID, authEmail, authKey string) []ResponseSetting {
 		log.Fatalln("Response body indicated that request failed:", parsedResp)
 	}
 
-	return parsedResp.Result
+	return parsedResp
 }
 
 func convertToConfig(settings []ResponseSetting) Config {
