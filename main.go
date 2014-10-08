@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"reflect"
 )
 
@@ -35,9 +36,9 @@ const rootURL = "https://api.cloudflare.com/v4"
 
 var (
 	httpClient = &http.Client{}
-	authEmail  = flag.String("email", "", "Authentication email address")
-	authKey    = flag.String("key", "", "Authentication key")
-	zoneID     = flag.String("zone", "", "Zone ID")
+	authEmail  = flag.String("email", "", "Authentication email address [required]")
+	authKey    = flag.String("key", "", "Authentication key [required]")
+	zoneID     = flag.String("zone", "", "Zone ID [required]")
 )
 
 func main() {
@@ -48,6 +49,7 @@ func main() {
 	)
 
 	flag.Parse()
+	checkRequiredFlags()
 
 	settings := getSettings()
 	config := convertToConfig(settings)
@@ -62,6 +64,18 @@ func main() {
 		log.Println("Comparing and updating configuration..")
 		configDesired := readConfig(*configFile)
 		compareAndUpdate(config, configDesired, *dryRun)
+	}
+}
+
+func checkRequiredFlags() {
+	var requiredFlags = []string{"email", "key", "zone"}
+
+	for _, name := range requiredFlags {
+		f := flag.Lookup(name)
+		if f.Value.String() == f.DefValue {
+			flag.Usage()
+			os.Exit(1)
+		}
 	}
 }
 
