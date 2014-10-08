@@ -44,6 +44,7 @@ func main() {
 	var (
 		configFile = flag.String("file", "cloudflare_zone.json", "Config file")
 		download   = flag.Bool("download", false, "Download configuration")
+		dryRun     = flag.Bool("dry-run", false, "Don't submit changes")
 	)
 
 	flag.Parse()
@@ -55,9 +56,12 @@ func main() {
 		log.Println("Saving configuration..")
 		writeConfig(config, *configFile)
 	} else {
+		if *dryRun {
+			log.Println("Dry run mode. Changes won't be submitted")
+		}
 		log.Println("Comparing and updating configuration..")
 		configDesired := readConfig(*configFile)
-		compareAndUpdate(config, configDesired)
+		compareAndUpdate(config, configDesired, *dryRun)
 	}
 }
 
@@ -164,7 +168,7 @@ func readConfig(file string) Config {
 	return config
 }
 
-func compareAndUpdate(configActual, configDesired Config) {
+func compareAndUpdate(configActual, configDesired Config, dryRun bool) {
 	if reflect.DeepEqual(configActual, configDesired) {
 		log.Println("No config changes to make")
 		return
@@ -181,7 +185,9 @@ func compareAndUpdate(configActual, configDesired Config) {
 			log.Println("Missing from local config:", key, valActual)
 		} else if !reflect.DeepEqual(valActual, valDesired) {
 			log.Println("Changing setting:", key, valActual, "->", valDesired)
-			changeSetting(key, valDesired)
+			if !dryRun {
+				changeSetting(key, valDesired)
+			}
 		}
 	}
 }
