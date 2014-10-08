@@ -67,6 +67,7 @@ func main() {
 	}
 }
 
+// Ensure that all mandatory flags have been provided.
 func checkRequiredFlags() {
 	var requiredFlags = []string{"email", "key", "zone", "file"}
 
@@ -79,8 +80,10 @@ func checkRequiredFlags() {
 	}
 }
 
-func changeSetting(id string, value interface{}) {
-	url := fmt.Sprintf("%s/zones/%s/settings/%s", RootURL, *zoneID, id)
+// Modify the value of a setting. Assumes that the name of the API endpoint
+// matches the key.
+func changeSetting(key string, value interface{}) {
+	url := fmt.Sprintf("%s/zones/%s/settings/%s", RootURL, *zoneID, key)
 
 	body, err := json.Marshal(CloudFlareRequestItem{value})
 	if err != nil {
@@ -95,6 +98,7 @@ func changeSetting(id string, value interface{}) {
 	_ = makeRequest(req)
 }
 
+// Fetch all settings for a zone.
 func getSettings() []CloudFlareConfigItem {
 	url := fmt.Sprintf("%s/zones/%s/settings", RootURL, *zoneID)
 
@@ -114,6 +118,8 @@ func getSettings() []CloudFlareConfigItem {
 	return settings
 }
 
+// Add authentication headers to an API request, submit it, check for
+// errors, and parse the response body as JSON.
 func makeRequest(req *http.Request) CloudFlareResponse {
 	req.Header.Set("X-Auth-Email", *authEmail)
 	req.Header.Set("X-Auth-Key", *authKey)
@@ -146,6 +152,8 @@ func makeRequest(req *http.Request) CloudFlareResponse {
 	return parsedResp
 }
 
+// Convert an array-of-maps that represent config items into a flat map that
+// is more human readable and easier to check for the existence of keys.
 func convertToConfig(settings []CloudFlareConfigItem) ConfigItems {
 	config := make(ConfigItems)
 	for _, setting := range settings {
@@ -167,6 +175,7 @@ func writeConfig(config ConfigItems, file string) {
 	}
 }
 
+// Load a JSON config from disk.
 func readConfig(file string) ConfigItems {
 	bs, err := ioutil.ReadFile(file)
 	if err != nil {
@@ -182,6 +191,8 @@ func readConfig(file string) ConfigItems {
 	return config
 }
 
+// Compare two ConfigItems. Log a message if a key name appears in one but
+// not the other. Submit changes if the actual values doesn't match desired.
 func compareAndUpdate(configActual, configDesired ConfigItems, dryRun bool) {
 	if reflect.DeepEqual(configActual, configDesired) {
 		log.Println("No config changes to make")
