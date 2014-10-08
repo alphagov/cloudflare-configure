@@ -12,23 +12,23 @@ import (
 	"reflect"
 )
 
-type Config map[string]interface{}
+type ConfigItems map[string]interface{}
 
-type Response struct {
+type CloudFlareResponse struct {
 	Success  bool
 	Errors   []string
 	Messages []string
 	Result   json.RawMessage
 }
 
-type ResponseSetting struct {
+type CloudFlareConfigItem struct {
 	ID         string
 	Value      interface{}
 	ModifiedOn string `json:"modified_on"`
 	Editable   bool
 }
 
-type RequestSetting struct {
+type CloudFlareRequestItem struct {
 	Value interface{} `json:"value"`
 }
 
@@ -82,7 +82,7 @@ func checkRequiredFlags() {
 func changeSetting(id string, value interface{}) {
 	url := fmt.Sprintf("%s/zones/%s/settings/%s", rootURL, *zoneID, id)
 
-	body, err := json.Marshal(RequestSetting{value})
+	body, err := json.Marshal(CloudFlareRequestItem{value})
 	if err != nil {
 		log.Fatalln("Parsing request JSON failed:", err)
 	}
@@ -95,7 +95,7 @@ func changeSetting(id string, value interface{}) {
 	_ = makeRequest(req)
 }
 
-func getSettings() []ResponseSetting {
+func getSettings() []CloudFlareConfigItem {
 	url := fmt.Sprintf("%s/zones/%s/settings", rootURL, *zoneID)
 
 	req, err := http.NewRequest("GET", url, nil)
@@ -105,7 +105,7 @@ func getSettings() []ResponseSetting {
 
 	resp := makeRequest(req)
 
-	var settings []ResponseSetting
+	var settings []CloudFlareConfigItem
 	err = json.Unmarshal(resp.Result, &settings)
 	if err != nil {
 		log.Fatalln("Parsing results as JSON failed", err)
@@ -114,7 +114,7 @@ func getSettings() []ResponseSetting {
 	return settings
 }
 
-func makeRequest(req *http.Request) Response {
+func makeRequest(req *http.Request) CloudFlareResponse {
 	req.Header.Set("X-Auth-Email", *authEmail)
 	req.Header.Set("X-Auth-Key", *authKey)
 
@@ -133,7 +133,7 @@ func makeRequest(req *http.Request) Response {
 		log.Fatalln("Incorrect HTTP response code", resp.StatusCode, ":", string(body))
 	}
 
-	var parsedResp Response
+	var parsedResp CloudFlareResponse
 	err = json.Unmarshal(body, &parsedResp)
 	if err != nil {
 		log.Fatalln("Parsing response body as JSON failed", err)
@@ -146,8 +146,8 @@ func makeRequest(req *http.Request) Response {
 	return parsedResp
 }
 
-func convertToConfig(settings []ResponseSetting) Config {
-	config := make(Config)
+func convertToConfig(settings []CloudFlareConfigItem) ConfigItems {
+	config := make(ConfigItems)
 	for _, setting := range settings {
 		config[setting.ID] = setting.Value
 	}
@@ -155,7 +155,7 @@ func convertToConfig(settings []ResponseSetting) Config {
 	return config
 }
 
-func writeConfig(config Config, file string) {
+func writeConfig(config ConfigItems, file string) {
 	bs, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
 		log.Fatalln("Parsing config to JSON failed:", err)
@@ -167,13 +167,13 @@ func writeConfig(config Config, file string) {
 	}
 }
 
-func readConfig(file string) Config {
+func readConfig(file string) ConfigItems {
 	bs, err := ioutil.ReadFile(file)
 	if err != nil {
 		log.Fatalln("Reading config file failed:", err)
 	}
 
-	var config Config
+	var config ConfigItems
 	err = json.Unmarshal(bs, &config)
 	if err != nil {
 		log.Fatalln("Parsing config file as JSON failed:", err)
@@ -182,7 +182,7 @@ func readConfig(file string) Config {
 	return config
 }
 
-func compareAndUpdate(configActual, configDesired Config, dryRun bool) {
+func compareAndUpdate(configActual, configDesired ConfigItems, dryRun bool) {
 	if reflect.DeepEqual(configActual, configDesired) {
 		log.Println("No config changes to make")
 		return
