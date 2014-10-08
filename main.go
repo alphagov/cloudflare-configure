@@ -17,7 +17,7 @@ type Response struct {
 	Success  bool
 	Errors   []string
 	Messages []string
-	Result   []ResponseSetting
+	Result   json.RawMessage
 }
 
 type ResponseSetting struct {
@@ -86,7 +86,14 @@ func getSettings() []ResponseSetting {
 	}
 
 	resp := makeRequest(req)
-	return resp.Result
+
+	var settings []ResponseSetting
+	err = json.Unmarshal(resp.Result, &settings)
+	if err != nil {
+		log.Fatalln("Parsing results as JSON failed", err)
+	}
+
+	return settings
 }
 
 func makeRequest(req *http.Request) Response {
