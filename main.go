@@ -43,7 +43,7 @@ var (
 
 func main() {
 	var (
-		configFile = flag.String("file", "cloudflare_zone.json", "Config file")
+		configFile = flag.String("file", "", "Config file [required]")
 		download   = flag.Bool("download", false, "Download configuration")
 		dryRun     = flag.Bool("dry-run", false, "Don't submit changes")
 	)
@@ -68,7 +68,7 @@ func main() {
 }
 
 func checkRequiredFlags() {
-	var requiredFlags = []string{"email", "key", "zone"}
+	var requiredFlags = []string{"email", "key", "zone", "file"}
 
 	for _, name := range requiredFlags {
 		f := flag.Lookup(name)
