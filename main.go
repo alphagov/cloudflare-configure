@@ -32,7 +32,7 @@ type CloudFlareRequestItem struct {
 	Value interface{} `json:"value"`
 }
 
-const rootURL = "https://api.cloudflare.com/v4"
+const RootURL = "https://api.cloudflare.com/v4"
 
 var (
 	httpClient = &http.Client{}
@@ -80,7 +80,7 @@ func checkRequiredFlags() {
 }
 
 func changeSetting(id string, value interface{}) {
-	url := fmt.Sprintf("%s/zones/%s/settings/%s", rootURL, *zoneID, id)
+	url := fmt.Sprintf("%s/zones/%s/settings/%s", RootURL, *zoneID, id)
 
 	body, err := json.Marshal(CloudFlareRequestItem{value})
 	if err != nil {
@@ -96,7 +96,7 @@ func changeSetting(id string, value interface{}) {
 }
 
 func getSettings() []CloudFlareConfigItem {
-	url := fmt.Sprintf("%s/zones/%s/settings", rootURL, *zoneID)
+	url := fmt.Sprintf("%s/zones/%s/settings", RootURL, *zoneID)
 
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
