@@ -16,6 +16,13 @@ You will need [Go]. Any 1.x version should do. To compile the binary:
 
 ## Usage
 
+List the available zones:
+
+    ➜  cdn-configs git:(master) ✗ ./cloudflare-configure -email user@example.com -key 123 -list-zones
+    4986183da7c16aab483d31ac6bb4cb7b    foo.example.com
+    15f14360e93a76824ab7d49a4533d970    bar.example.com
+    d1082145f48bb35a023c6ec3a7897837    baz.example.com
+
 Download the current configuration for a zone:
 
     ➜  cdn-configs git:(master) ✗ ./cloudflare-configure -email user@example.com -key 123 -zone 456 -file myzone.json -download

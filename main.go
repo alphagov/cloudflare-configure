@@ -21,6 +21,11 @@ type CloudFlareResponse struct {
 	Result   json.RawMessage
 }
 
+type CloudFlareZoneItem struct {
+	ID   string
+	Name string
+}
+
 type CloudFlareConfigItem struct {
 	ID         string
 	Value      interface{}
@@ -45,39 +50,66 @@ func main() {
 	var (
 		configFile = flag.String("file", "", "Config file [required]")
 		download   = flag.Bool("download", false, "Download configuration")
+		listZones  = flag.Bool("list-zones", false, "List zone IDs and names")
 		dryRun     = flag.Bool("dry-run", false, "Don't submit changes")
 	)
 
 	flag.Parse()
-	checkRequiredFlags()
+	checkRequiredFlags([]string{"email", "key"})
 
+	if *listZones {
+		zones := getZones()
+		printZones(zones)
+		return
+	}
+
+	checkRequiredFlags([]string{"zone", "file"})
 	settings := getSettings()
 	config := convertToConfig(settings)
 
 	if *download {
 		log.Println("Saving configuration..")
 		writeConfig(config, *configFile)
-	} else {
-		if *dryRun {
-			log.Println("Dry run mode. Changes won't be submitted")
-		}
-		log.Println("Comparing and updating configuration..")
-		configDesired := readConfig(*configFile)
-		compareAndUpdate(config, configDesired, *dryRun)
+		return
 	}
+
+	if *dryRun {
+		log.Println("Dry run mode. Changes won't be submitted")
+	}
+	log.Println("Comparing and updating configuration..")
+	configDesired := readConfig(*configFile)
+	compareAndUpdate(config, configDesired, *dryRun)
 }
 
 // Ensure that all mandatory flags have been provided.
-func checkRequiredFlags() {
-	var requiredFlags = []string{"email", "key", "zone", "file"}
-
-	for _, name := range requiredFlags {
+func checkRequiredFlags(names []string) {
+	for _, name := range names {
 		f := flag.Lookup(name)
 		if f.Value.String() == f.DefValue {
 			flag.Usage()
 			os.Exit(1)
 		}
 	}
+}
+
+// Get all available zones.
+func getZones() []CloudFlareZoneItem {
+	url := fmt.Sprintf("%s/zones", RootURL)
+
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalln("Constructing request failed:", err)
+	}
+
+	resp := makeRequest(req)
+
+	var zones []CloudFlareZoneItem
+	err = json.Unmarshal(resp.Result, &zones)
+	if err != nil {
+		log.Fatalln("Parsing results as JSON failed", err)
+	}
+
+	return zones
 }
 
 // Modify the value of a setting. Assumes that the name of the API endpoint
@@ -150,6 +182,13 @@ func makeRequest(req *http.Request) CloudFlareResponse {
 	}
 
 	return parsedResp
+}
+
+// Output zone IDs and names.
+func printZones(zones []CloudFlareZoneItem) {
+	for _, zone := range zones {
+		fmt.Println(zone.ID, "\t", zone.Name)
+	}
 }
 
 // Convert an array-of-maps that represent config items into a flat map that
