@@ -10,8 +10,6 @@ import (
 	"reflect"
 )
 
-type ConfigItems map[string]interface{}
-
 type CloudFlareResponse struct {
 	Success  bool
 	Errors   []string
