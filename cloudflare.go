@@ -13,7 +13,7 @@ type CloudFlare struct {
 	Query  *CloudFlareQuery
 }
 
-func (c *CloudFlare) Set(zone, id, val string) error {
+func (c *CloudFlare) Set(zone, id string, val interface{}) error {
 	body, err := json.Marshal(&CloudFlareRequestItem{Value: val})
 	if err != nil {
 		return err
