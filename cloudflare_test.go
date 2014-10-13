@@ -1,10 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -119,7 +122,8 @@ func TestGettingSettings(t *testing.T) {
 	}
 
 	testServer := testCloudFlareServer(200, `{
-		"errors": [], "messages": [], 
+		"errors": [],
+		"messages": [], 
 		"result": [
 			{"id": "always_online", "value": "off", "modified_on": "2014-07-09T11:50:56.595672Z", "editable": true},
 			{"id": "browser_cache_ttl", "value": 14400, "modified_on": "2014-07-09T11:50:56.595672Z", "editable": true}
@@ -140,5 +144,74 @@ func TestGettingSettings(t *testing.T) {
 	}
 	if !reflect.DeepEqual(settings, expectedSettings) {
 		t.Fatal("Settings response doesn't match", settings)
+	}
+}
+
+func TestChangeSetting(t *testing.T) {
+	const zoneID = "123"
+	const settingID = "always_online"
+	const settingVal = "off"
+
+	receivedRequest := false
+
+	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		receivedRequest = true
+
+		if method := r.Method; method != "PATCH" {
+			t.Fatal("Incorrect request method", method)
+		}
+
+		expectedURL := fmt.Sprintf("/zones/%s/settings/%s", zoneID, settingID)
+		if !strings.HasSuffix(r.URL.String(), expectedURL) {
+			t.Fatal("Request URL was incorrect")
+		}
+
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			t.Fatal("Unable to read request body", err)
+		}
+
+		var setting CloudFlareRequestItem
+		err = json.Unmarshal(body, &setting)
+		if err != nil {
+			t.Fatal("Unable to parse request body", err)
+		}
+
+		expectedSetting := &CloudFlareRequestItem{
+			Value: settingVal,
+		}
+		if !reflect.DeepEqual(setting, *expectedSetting) {
+			t.Fatal("Request was incorrect", setting, expectedSetting)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		fmt.Fprintf(w, `{
+			"errors": [],
+			"messages": [], 
+			"result": {
+				"id": "always_online",
+				"value": "off",
+				"modified_on": "2014-07-09T11:50:56.595672Z",
+				"editable": true
+			},
+			"success": true
+		}`)
+	}))
+	defer testServer.Close()
+
+	query := &CloudFlareQuery{
+		RootURL:   testServer.URL,
+		AuthEmail: "user@example.com",
+		AuthKey:   "abc123",
+	}
+	cloudFlare := NewCloudFlare(query)
+
+	err := cloudFlare.Set(zoneID, settingID, settingVal)
+	if err != nil {
+		t.Fatal("Unable to set setting")
+	}
+
+	if !receivedRequest {
+		t.Fatal("Expected test server to receive request")
 	}
 }
