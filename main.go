@@ -1,13 +1,11 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"reflect"
 )
@@ -39,15 +37,11 @@ type CloudFlareRequestItem struct {
 
 const RootURL = "https://api.cloudflare.com/v4"
 
-var (
-	httpClient = &http.Client{}
-	authEmail  = flag.String("email", "", "Authentication email address [required]")
-	authKey    = flag.String("key", "", "Authentication key [required]")
-	zoneID     = flag.String("zone", "", "Zone ID [required]")
-)
-
 func main() {
 	var (
+		authEmail  = flag.String("email", "", "Authentication email address [required]")
+		authKey    = flag.String("key", "", "Authentication key [required]")
+		zoneID     = flag.String("zone", "", "Zone ID [required]")
 		configFile = flag.String("file", "", "Config file [required]")
 		download   = flag.Bool("download", false, "Download configuration")
 		listZones  = flag.Bool("list-zones", false, "List zone IDs and names")
@@ -91,7 +85,7 @@ func main() {
 	}
 	log.Println("Comparing and updating configuration..")
 	configDesired := readConfig(*configFile)
-	compareAndUpdate(config, configDesired, *dryRun)
+	compareAndUpdate(cloudflare, *zoneID, config, configDesired, *dryRun)
 }
 
 // Ensure that all mandatory flags have been provided.
@@ -103,58 +97,6 @@ func checkRequiredFlags(names []string) {
 			os.Exit(1)
 		}
 	}
-}
-
-// Modify the value of a setting. Assumes that the name of the API endpoint
-// matches the key.
-func changeSetting(key string, value interface{}) {
-	url := fmt.Sprintf("%s/zones/%s/settings/%s", RootURL, *zoneID, key)
-
-	body, err := json.Marshal(CloudFlareRequestItem{value})
-	if err != nil {
-		log.Fatalln("Parsing request JSON failed:", err)
-	}
-
-	req, err := http.NewRequest("PATCH", url, bytes.NewBuffer(body))
-	if err != nil {
-		log.Fatalln("Constructing request failed:", err)
-	}
-
-	_ = makeRequest(req)
-}
-
-// Add authentication headers to an API request, submit it, check for
-// errors, and parse the response body as JSON.
-func makeRequest(req *http.Request) CloudFlareResponse {
-	req.Header.Set("X-Auth-Email", *authEmail)
-	req.Header.Set("X-Auth-Key", *authKey)
-
-	resp, err := httpClient.Do(req)
-	if err != nil {
-		log.Fatalln("Request failed:", err)
-	}
-	defer resp.Body.Close()
-
-	body, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		log.Fatalln("Reading response body failed:", err)
-	}
-
-	if resp.StatusCode != http.StatusOK {
-		log.Fatalln("Incorrect HTTP response code", resp.StatusCode, ":", string(body))
-	}
-
-	var parsedResp CloudFlareResponse
-	err = json.Unmarshal(body, &parsedResp)
-	if err != nil {
-		log.Fatalln("Parsing response body as JSON failed", err)
-	}
-
-	if !parsedResp.Success || len(parsedResp.Errors) > 0 {
-		log.Fatalln("Response body indicated that request failed:", parsedResp)
-	}
-
-	return parsedResp
 }
 
 // Output zone IDs and names.
@@ -205,7 +147,7 @@ func readConfig(file string) ConfigItems {
 
 // Compare two ConfigItems. Log a message if a key name appears in one but
 // not the other. Submit changes if the actual values doesn't match desired.
-func compareAndUpdate(configActual, configDesired ConfigItems, dryRun bool) {
+func compareAndUpdate(cloudflare *CloudFlare, zoneID string, configActual, configDesired ConfigItems, dryRun bool) {
 	if reflect.DeepEqual(configActual, configDesired) {
 		log.Println("No config changes to make")
 		return
@@ -223,7 +165,7 @@ func compareAndUpdate(configActual, configDesired ConfigItems, dryRun bool) {
 		} else if !reflect.DeepEqual(valActual, valDesired) {
 			log.Println("Changing setting:", key, valActual, "->", valDesired)
 			if !dryRun {
-				changeSetting(key, valDesired)
+				cloudflare.Set(zoneID, key, valDesired)
 			}
 		}
 	}
