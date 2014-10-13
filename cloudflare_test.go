@@ -16,8 +16,13 @@ func testCloudFlareServer(status int, body string) *httptest.Server {
 }
 
 func TestBuildingAnHTTPRequest(t *testing.T) {
+	const headerEmail = "X-Auth-Email"
+	const headerKey = "X-Auth-Key"
+
 	query := &CloudFlareQuery{
-		RootURL: "foo.com",
+		RootURL:   "foo.com",
+		AuthEmail: "user@example.com",
+		AuthKey:   "abc123",
 	}
 
 	request, err := query.NewRequest("GET", "/zones")
@@ -31,6 +36,14 @@ func TestBuildingAnHTTPRequest(t *testing.T) {
 
 	if request.URL.String() != "foo.com/zones" {
 		t.Fatal("Not the zones path for CF")
+	}
+
+	if val := request.Header.Get(headerEmail); val != query.AuthEmail {
+		t.Error("AuthEmail incorrect:", val)
+	}
+
+	if val := request.Header.Get(headerKey); val != query.AuthKey {
+		t.Error("AuthKey incorrect:", val)
 	}
 }
 
