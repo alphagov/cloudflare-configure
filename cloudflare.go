@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -10,6 +11,24 @@ import (
 type CloudFlare struct {
 	Client *http.Client
 	Query  *CloudFlareQuery
+}
+
+func (c *CloudFlare) Set(zone, id string, val interface{}) error {
+	body, err := json.Marshal(&CloudFlareRequestItem{Value: val})
+	if err != nil {
+		return err
+	}
+
+	req, err := c.Query.NewRequestBody("PATCH",
+		fmt.Sprintf("/zones/%s/settings/%s", zone, id),
+		bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
+
+	_, err = c.makeRequest(req)
+
+	return err
 }
 
 func (c *CloudFlare) Settings(zoneID string) ([]CloudFlareConfigItem, error) {

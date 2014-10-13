@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -12,9 +13,13 @@ type CloudFlareQuery struct {
 }
 
 func (q *CloudFlareQuery) NewRequest(method, path string) (*http.Request, error) {
+	return q.NewRequestBody(method, path, nil)
+}
+
+func (q *CloudFlareQuery) NewRequestBody(method, path string, body io.Reader) (*http.Request, error) {
 	url := fmt.Sprintf("%s%s", q.RootURL, path)
 
-	request, err := http.NewRequest(method, url, nil)
+	request, err := http.NewRequest(method, url, body)
 	if err != nil {
 		return nil, err
 	}
