@@ -57,14 +57,27 @@ func main() {
 	flag.Parse()
 	checkRequiredFlags([]string{"email", "key"})
 
+	query := &CloudFlareQuery{
+		AuthEmail: *authEmail,
+		AuthKey:   *authKey,
+		RootURL:   RootURL,
+	}
+	cloudflare := NewCloudFlare(query)
+
 	if *listZones {
-		zones := getZones()
+		zones, err := cloudflare.Zones()
+		if err != nil {
+			log.Fatal("Couldn't get zones", err)
+		}
 		printZones(zones)
 		return
 	}
 
 	checkRequiredFlags([]string{"zone", "file"})
-	settings := getSettings()
+	settings, err := cloudflare.Settings(*zoneID)
+	if err != nil {
+		log.Fatal("Couldn't read settings", err)
+	}
 	config := convertToConfig(settings)
 
 	if *download {
@@ -92,26 +105,6 @@ func checkRequiredFlags(names []string) {
 	}
 }
 
-// Get all available zones.
-func getZones() []CloudFlareZoneItem {
-	url := fmt.Sprintf("%s/zones", RootURL)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Fatalln("Constructing request failed:", err)
-	}
-
-	resp := makeRequest(req)
-
-	var zones []CloudFlareZoneItem
-	err = json.Unmarshal(resp.Result, &zones)
-	if err != nil {
-		log.Fatalln("Parsing results as JSON failed", err)
-	}
-
-	return zones
-}
-
 // Modify the value of a setting. Assumes that the name of the API endpoint
 // matches the key.
 func changeSetting(key string, value interface{}) {
@@ -128,26 +121,6 @@ func changeSetting(key string, value interface{}) {
 	}
 
 	_ = makeRequest(req)
-}
-
-// Fetch all settings for a zone.
-func getSettings() []CloudFlareConfigItem {
-	url := fmt.Sprintf("%s/zones/%s/settings", RootURL, *zoneID)
-
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		log.Fatalln("Constructing request failed:", err)
-	}
-
-	resp := makeRequest(req)
-
-	var settings []CloudFlareConfigItem
-	err = json.Unmarshal(resp.Result, &settings)
-	if err != nil {
-		log.Fatalln("Parsing results as JSON failed", err)
-	}
-
-	return settings
 }
 
 // Add authentication headers to an API request, submit it, check for
