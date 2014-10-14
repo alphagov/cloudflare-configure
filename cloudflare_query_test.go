@@ -19,7 +19,11 @@ const (
 )
 
 var _ = Describe("CloudFlareQuery", func() {
-	var query CloudFlareQuery
+	var (
+		err   error
+		query CloudFlareQuery
+		req   *http.Request
+	)
 
 	BeforeEach(func() {
 		query = CloudFlareQuery{
@@ -30,11 +34,6 @@ var _ = Describe("CloudFlareQuery", func() {
 	})
 
 	Describe("MakeRequest", func() {
-		var (
-			req *http.Request
-			err error
-		)
-
 		BeforeEach(func() {
 			req, err = query.NewRequest("GET", "/zones")
 		})
@@ -64,11 +63,7 @@ var _ = Describe("CloudFlareQuery", func() {
 	})
 
 	Describe("MakeRequestBody", func() {
-		var (
-			body = `{"foo": "bar"}`
-			req  *http.Request
-			err  error
-		)
+		const body = `{"foo": "bar"}`
 
 		BeforeEach(func() {
 			req, err = query.NewRequestBody(
