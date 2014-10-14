@@ -11,15 +11,15 @@ import (
 	"strings"
 )
 
-const headerEmail = "X-Auth-Email"
-const headerKey = "X-Auth-Key"
+const (
+	headerEmail = "X-Auth-Email"
+	headerKey   = "X-Auth-Key"
+	authEmail   = "user@example.com"
+	authKey     = "abc123"
+)
 
 var _ = Describe("CloudFlareQuery", func() {
-	var (
-		authEmail = "user@example.com"
-		authKey   = "abc123"
-		query     CloudFlareQuery
-	)
+	var query CloudFlareQuery
 
 	BeforeEach(func() {
 		query = CloudFlareQuery{
