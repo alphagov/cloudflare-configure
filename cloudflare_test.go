@@ -64,7 +64,7 @@ func TestMakingARequestWithoutSuccess(t *testing.T) {
 	cloudFlare := NewCloudFlare(query)
 
 	req, _ := query.NewRequest("GET", "/foo")
-	_, err := cloudFlare.makeRequest(req)
+	_, err := cloudFlare.MakeRequest(req)
 	if err == nil {
 		t.Fatalf("Expected to be notified if the response wasn't successful")
 	}
@@ -83,7 +83,7 @@ func TestMakingARequestWithErrors(t *testing.T) {
 	cloudFlare := NewCloudFlare(query)
 
 	req, _ := query.NewRequest("GET", "/foo")
-	_, err := cloudFlare.makeRequest(req)
+	_, err := cloudFlare.MakeRequest(req)
 	if err == nil {
 		t.Fatalf("Expected to be notified if the response wasn't successful")
 	}
@@ -97,7 +97,7 @@ func TestMakingARequestWithout200Code(t *testing.T) {
 	cloudFlare := NewCloudFlare(query)
 
 	req, _ := query.NewRequest("GET", "/foo")
-	_, err := cloudFlare.makeRequest(req)
+	_, err := cloudFlare.MakeRequest(req)
 	if err == nil {
 		t.Fatalf("Expected to be notified if the response wasn't successful")
 	}

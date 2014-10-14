@@ -26,7 +26,7 @@ func (c *CloudFlare) Set(zone, id string, val interface{}) error {
 		return err
 	}
 
-	_, err = c.makeRequest(req)
+	_, err = c.MakeRequest(req)
 
 	return err
 }
@@ -37,7 +37,7 @@ func (c *CloudFlare) Settings(zoneID string) ([]CloudFlareConfigItem, error) {
 		return nil, err
 	}
 
-	response, err := c.makeRequest(req)
+	response, err := c.MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -54,7 +54,7 @@ func (c *CloudFlare) Zones() ([]CloudFlareZoneItem, error) {
 		return nil, err
 	}
 
-	response, err := c.makeRequest(req)
+	response, err := c.MakeRequest(req)
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +65,7 @@ func (c *CloudFlare) Zones() ([]CloudFlareZoneItem, error) {
 	return zones, err
 }
 
-func (c *CloudFlare) makeRequest(request *http.Request) (*CloudFlareResponse, error) {
+func (c *CloudFlare) MakeRequest(request *http.Request) (*CloudFlareResponse, error) {
 	resp, err := c.Client.Do(request)
 	if err != nil {
 		return nil, err
