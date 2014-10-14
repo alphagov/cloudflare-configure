@@ -24,6 +24,7 @@ func (q *CloudFlareQuery) NewRequestBody(method, path string, body io.Reader) (*
 		return nil, err
 	}
 
+	request.Header.Set("Content-Type", "application/json")
 	request.Header.Set("X-Auth-Email", q.AuthEmail)
 	request.Header.Set("X-Auth-Key", q.AuthKey)
 

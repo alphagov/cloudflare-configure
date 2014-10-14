@@ -53,6 +53,10 @@ var _ = Describe("CloudFlareQuery", func() {
 			Expect(req.Body).To(BeNil())
 		})
 
+		It("should set Content-Type to JSON", func() {
+			Expect(req.Header.Get("Content-Type")).To(Equal("application/json"))
+		})
+
 		It("should set authentication email and key header", func() {
 			Expect(req.Header.Get(headerEmail)).To(Equal(authEmail))
 			Expect(req.Header.Get(headerKey)).To(Equal(authKey))
