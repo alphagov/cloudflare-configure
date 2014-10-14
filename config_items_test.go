@@ -9,7 +9,7 @@ import (
 
 var _ = Describe("ConfigItems", func() {
 	Describe("Union", func() {
-		It("two ConfigItems", func() {
+		It("merges two ConfigItems objects overwriting values of the latter with the former", func() {
 			Expect(UnionConfigItems(
 				ConfigItems{
 					"always_online": "off",
@@ -30,7 +30,7 @@ var _ = Describe("ConfigItems", func() {
 	})
 
 	Describe("Difference", func() {
-		It("two ConfigItems", func() {
+		It("returns the difference of two ConfigItems objects", func() {
 			Expect(DifferenceConfigItems(
 				ConfigItems{
 					"always_online": "off",
