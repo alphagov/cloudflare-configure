@@ -8,6 +8,29 @@ import (
 	"net/http"
 )
 
+type CloudFlareResponse struct {
+	Success  bool
+	Errors   []string
+	Messages []string
+	Result   json.RawMessage
+}
+
+type CloudFlareZoneItem struct {
+	ID   string
+	Name string
+}
+
+type CloudFlareConfigItem struct {
+	ID         string
+	Value      interface{}
+	ModifiedOn string `json:"modified_on"`
+	Editable   bool
+}
+
+type CloudFlareRequestItem struct {
+	Value interface{} `json:"value"`
+}
+
 type CloudFlare struct {
 	Client *http.Client
 	Query  *CloudFlareQuery
