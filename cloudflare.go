@@ -8,9 +8,14 @@ import (
 	"net/http"
 )
 
+type CloudFlareError struct {
+	Code    int
+	Message string
+}
+
 type CloudFlareResponse struct {
 	Success  bool
-	Errors   []string
+	Errors   []CloudFlareError
 	Messages []string
 	Result   json.RawMessage
 }
