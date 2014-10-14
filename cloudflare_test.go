@@ -1,6 +1,12 @@
-package main
+package main_test
 
 import (
+	. "github.com/alphagov/cloudflare-configure"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/ghttp"
+
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -11,96 +17,136 @@ import (
 	"testing"
 )
 
+var _ = Describe("CloudFlare", func() {
+	var (
+		server     *ghttp.Server
+		query      *CloudFlareQuery
+		cloudFlare *CloudFlare
+	)
+
+	BeforeEach(func() {
+		server = ghttp.NewServer()
+		query = &CloudFlareQuery{RootURL: server.URL()}
+		cloudFlare = NewCloudFlare(query)
+	})
+
+	AfterEach(func() {
+		server.Close()
+	})
+
+	Describe("Zones()", func() {
+		BeforeEach(func() {
+			server.AppendHandlers(
+				ghttp.CombineHandlers(
+					ghttp.VerifyRequest("GET", "/zones"),
+					ghttp.RespondWith(http.StatusOK, `{
+						"errors": [],
+						"messages": [],
+						"result": [
+							{"id": "123", "name": "foo"},
+							{"id": "456", "name": "bar"}
+						],
+						"success": true
+					}`),
+				),
+			)
+		})
+
+		It("should return two CloudFlareZoneItems", func() {
+			zones, err := cloudFlare.Zones()
+
+			Expect(err).To(BeNil())
+			Expect(zones).To(Equal([]CloudFlareZoneItem{
+				CloudFlareZoneItem{
+					ID:   "123",
+					Name: "foo",
+				},
+				CloudFlareZoneItem{
+					ID:   "456",
+					Name: "bar",
+				},
+			}))
+		})
+	})
+
+	Describe("MakeRequest()", func() {
+		var req *http.Request
+
+		BeforeEach(func() {
+			req, _ = query.NewRequest("GET", "/something")
+		})
+
+		Context("200, success: false, errors: []", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/something"),
+						ghttp.RespondWith(http.StatusOK, `{
+							"errors": [],
+							"messages": [],
+							"result": [],
+							"success": false
+						}`),
+					),
+				)
+			})
+
+			It("should return error", func() {
+				resp, err := cloudFlare.MakeRequest(req)
+
+				Expect(resp).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+		})
+
+		Context("200, success: true, errors: [something bad]", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/something"),
+						ghttp.RespondWith(http.StatusOK, `{
+							"errors": ["something bad"],
+							"messages": [],
+							"result": [],
+							"success": true
+						}`),
+					),
+				)
+			})
+
+			It("should return error", func() {
+				resp, err := cloudFlare.MakeRequest(req)
+
+				Expect(resp).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+		})
+
+		Context("500, empty body", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/something"),
+						ghttp.RespondWith(http.StatusServiceUnavailable, ""),
+					),
+				)
+			})
+
+			It("should return error", func() {
+				resp, err := cloudFlare.MakeRequest(req)
+
+				Expect(resp).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+		})
+	})
+})
+
 func testCloudFlareServer(status int, body string) *httptest.Server {
 	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(status)
 		fmt.Fprintf(w, body)
 	}))
-}
-
-func TestGettingZones(t *testing.T) {
-	testServer := testCloudFlareServer(200, `{
-		"errors": [],
-		"messages": [],
-		"result": [{"id": "foo", "name": "bar"}],
-		"success": true
-	}`)
-	defer testServer.Close()
-
-	expectedZones := []CloudFlareZoneItem{
-		CloudFlareZoneItem{
-			ID:   "foo",
-			Name: "bar",
-		},
-	}
-
-	query := &CloudFlareQuery{RootURL: testServer.URL}
-	cloudFlare := NewCloudFlare(query)
-
-	zones, err := cloudFlare.Zones()
-	if err != nil {
-		t.Fatalf("Expected to get zones with no errors", err.Error())
-	}
-
-	if len(zones) != len(expectedZones) {
-		t.Fatal("Didn't get the right number of zones back")
-	}
-
-	if zones[0] != expectedZones[0] {
-		t.Fatal("Not the zones we were looking for", zones)
-	}
-}
-
-func TestMakingARequestWithoutSuccess(t *testing.T) {
-	testServer := testCloudFlareServer(200, `{
-		"errors": [],
-		"messages": [],
-		"result": [],
-		"success": false
-	}`)
-	defer testServer.Close()
-
-	query := &CloudFlareQuery{RootURL: testServer.URL}
-	cloudFlare := NewCloudFlare(query)
-
-	req, _ := query.NewRequest("GET", "/foo")
-	_, err := cloudFlare.MakeRequest(req)
-	if err == nil {
-		t.Fatalf("Expected to be notified if the response wasn't successful")
-	}
-}
-
-func TestMakingARequestWithErrors(t *testing.T) {
-	testServer := testCloudFlareServer(200, `{
-		"errors": ["something bad"],
-		"messages": [],
-		"result": [],
-		"success": true
-	}`)
-	defer testServer.Close()
-
-	query := &CloudFlareQuery{RootURL: testServer.URL}
-	cloudFlare := NewCloudFlare(query)
-
-	req, _ := query.NewRequest("GET", "/foo")
-	_, err := cloudFlare.MakeRequest(req)
-	if err == nil {
-		t.Fatalf("Expected to be notified if the response wasn't successful")
-	}
-}
-
-func TestMakingARequestWithout200Code(t *testing.T) {
-	testServer := testCloudFlareServer(500, ``)
-	defer testServer.Close()
-
-	query := &CloudFlareQuery{RootURL: testServer.URL}
-	cloudFlare := NewCloudFlare(query)
-
-	req, _ := query.NewRequest("GET", "/foo")
-	_, err := cloudFlare.MakeRequest(req)
-	if err == nil {
-		t.Fatalf("Expected to be notified if the response wasn't successful")
-	}
 }
 
 func TestGettingSettings(t *testing.T) {
