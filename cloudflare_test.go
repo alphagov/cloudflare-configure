@@ -136,7 +136,7 @@ var _ = Describe("CloudFlare", func() {
 	})
 
 	Describe("Settings()", func() {
-		var zoneID = "123"
+		zoneID := "123"
 
 		BeforeEach(func() {
 			server.AppendHandlers(
@@ -189,9 +189,9 @@ var _ = Describe("CloudFlare", func() {
 	})
 
 	Describe("Set()", func() {
-		var zoneID = "123"
-		var settingKey = "always_online"
-		var settingVal = "off"
+		zoneID := "123"
+		settingKey := "always_online"
+		settingVal := "off"
 
 		BeforeEach(func() {
 			server.AppendHandlers(
