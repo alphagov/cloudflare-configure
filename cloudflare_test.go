@@ -216,10 +216,8 @@ var _ = Describe("CloudFlare", func() {
 			)
 		})
 
-		It("should return two CloudFlareConfigItems", func() {
-			err := cloudFlare.Set(zoneID, settingKey, settingVal)
-
-			Expect(err).To(BeNil())
+		It("should set the value with no errors", func() {
+			Expect(cloudFlare.Set(zoneID, settingKey, settingVal)).To(BeNil())
 		})
 	})
 })
