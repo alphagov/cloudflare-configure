@@ -220,4 +220,117 @@ var _ = Describe("CloudFlare", func() {
 			Expect(cloudFlare.Set(zoneID, settingKey, settingVal)).To(BeNil())
 		})
 	})
+
+	Describe("CompareAndSet()", func() {
+		zoneID := "123"
+		settingValAlwaysOnline := "on"
+		settingValBrowserCache := 123
+
+		BeforeEach(func() {
+			server.RouteToHandler("PATCH", fmt.Sprintf("/zones/%s/settings/always_online", zoneID),
+				ghttp.CombineHandlers(
+					ghttp.VerifyJSON(fmt.Sprintf(`{"value": "%s"}`, settingValAlwaysOnline)),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, CloudFlareResponse{Success: true}),
+				),
+			)
+			server.RouteToHandler("PATCH", fmt.Sprintf("/zones/%s/settings/browser_cache_ttl", zoneID),
+				ghttp.CombineHandlers(
+					ghttp.VerifyJSON(fmt.Sprintf(`{"value": %d}`, settingValBrowserCache)),
+					ghttp.RespondWithJSONEncoded(http.StatusOK, CloudFlareResponse{Success: true}),
+				),
+			)
+			server.RouteToHandler("PATCH", fmt.Sprintf("/zones/%s/settings/non_existent_devops_hero", zoneID),
+				ghttp.CombineHandlers(
+					ghttp.RespondWithJSONEncoded(http.StatusBadRequest, CloudFlareResponse{
+						Success: false,
+						Errors: []CloudFlareError{CloudFlareError{
+							Code:    1006,
+							Message: "Unrecognized zone setting name",
+						}},
+					}),
+				),
+			)
+		})
+
+		It("should set nothing when local and remote are identical", func() {
+			err := cloudFlare.CompareAndSet(zoneID,
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+			)
+
+			Expect(server.ReceivedRequests()).To(HaveLen(0))
+			Expect(err).To(BeNil())
+		})
+
+		It("should set all items in remote when remote is empty", func() {
+			err := cloudFlare.CompareAndSet(zoneID,
+				ConfigItems{},
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+			)
+
+			Expect(server.ReceivedRequests()).To(HaveLen(2))
+			Expect(err).To(BeNil())
+		})
+
+		It("should set one item in remote overwriting always_online", func() {
+			err := cloudFlare.CompareAndSet(zoneID,
+				ConfigItems{
+					"always_online":     "off",
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+			)
+
+			Expect(server.ReceivedRequests()).To(HaveLen(1))
+			Expect(err).To(BeNil())
+		})
+
+		It("should return a public error when item is missing in local", func() {
+			err := cloudFlare.CompareAndSet(zoneID,
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+				ConfigItems{
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+			)
+
+			Expect(server.ReceivedRequests()).To(HaveLen(0))
+			Expect(err).ToNot(BeNil())
+			Expect(err).To(MatchError(
+				ConfigMismatch{Missing: ConfigItems{"always_online": settingValAlwaysOnline}}))
+		})
+
+		It("should return a public error when key is not supported by remote", func() {
+			err := cloudFlare.CompareAndSet(zoneID,
+				ConfigItems{
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+				ConfigItems{
+					"non_existent_devops_hero": "always devopsing",
+					"browser_cache_ttl":        settingValBrowserCache,
+				},
+			)
+
+			Expect(server.ReceivedRequests()).To(HaveLen(1))
+			Expect(err).ToNot(BeNil())
+
+			// TODO:
+			// What happens when we get a non-200 error for a given key we're
+			// trying to set? What should we do and how should it be handled?
+		})
+	})
 })
