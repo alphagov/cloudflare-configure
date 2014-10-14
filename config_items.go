@@ -4,6 +4,14 @@ import (
 	"reflect"
 )
 
+type ConfigMismatch struct {
+	Missing ConfigItems
+}
+
+func (c ConfigMismatch) Error() string {
+	return "Config found that is present in the CDN config but not in the local config"
+}
+
 type ConfigItems map[string]interface{}
 
 func UnionConfigItems(first, second ConfigItems) ConfigItems {
