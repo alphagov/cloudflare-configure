@@ -1,63 +1,93 @@
-package main
+package main_test
 
 import (
-	"bytes"
+	. "github.com/alphagov/cloudflare-configure"
+
+	. "github.com/onsi/ginkgo"
+	. "github.com/onsi/gomega"
+
 	"io/ioutil"
-	"reflect"
-	"testing"
+	"net/http"
+	"strings"
 )
 
 const headerEmail = "X-Auth-Email"
 const headerKey = "X-Auth-Key"
 
-func TestBuildingAnHTTPRequest(t *testing.T) {
-	query := &CloudFlareQuery{
-		RootURL:   "foo.com",
-		AuthEmail: "user@example.com",
-		AuthKey:   "abc123",
-	}
+var _ = Describe("CloudFlareQuery", func() {
+	var (
+		authEmail = "user@example.com"
+		authKey   = "abc123"
+		query     CloudFlareQuery
+	)
 
-	request, err := query.NewRequest("GET", "/zones")
-	if err != nil {
-		t.Fatalf("Should've built request without errors", err.Error())
-	}
+	BeforeEach(func() {
+		query = CloudFlareQuery{
+			RootURL:   "https://example.com/api",
+			AuthEmail: authEmail,
+			AuthKey:   authKey,
+		}
+	})
 
-	if request.Method != "GET" {
-		t.Fatal("Expected a GET request")
-	}
+	Describe("MakeRequest", func() {
+		var (
+			req *http.Request
+			err error
+		)
 
-	if request.URL.String() != "foo.com/zones" {
-		t.Fatal("Not the zones path for CF")
-	}
+		BeforeEach(func() {
+			req, err = query.NewRequest("GET", "/zones")
+		})
 
-	if val := request.Header.Get(headerEmail); val != query.AuthEmail {
-		t.Error("AuthEmail incorrect:", val)
-	}
+		It("should return request and no errors", func() {
+			Expect(req).ToNot(BeNil())
+			Expect(err).To(BeNil())
+		})
 
-	if val := request.Header.Get(headerKey); val != query.AuthKey {
-		t.Error("AuthKey incorrect:", val)
-	}
-}
+		It("should set method and path", func() {
+			Expect(req.Method).To(Equal("GET"))
+			Expect(req.URL.String()).To(Equal("https://example.com/api/zones"))
+		})
 
-func TestSettingARequestBody(t *testing.T) {
-	query := &CloudFlareQuery{
-		RootURL:   "foo.com",
-		AuthEmail: "user@example.com",
-		AuthKey:   "abc123",
-	}
+		It("should not set request body", func() {
+			Expect(req.Body).To(BeNil())
+		})
 
-	request, err := query.NewRequestBody("POST", "/foo", bytes.NewBuffer([]byte(`{"a": 1}`)))
-	if err != nil {
-		t.Fatal("Should've built a request with a body with no errors", err)
-	}
+		It("should set authentication email and key header", func() {
+			Expect(req.Header.Get(headerEmail)).To(Equal(authEmail))
+			Expect(req.Header.Get(headerKey)).To(Equal(authKey))
+		})
+	})
 
-	defer request.Body.Close()
-	body, err := ioutil.ReadAll(request.Body)
-	if err != nil {
-		t.Fatal("Couldn't read the response body without errors", err)
-	}
+	Describe("MakeRequestBody", func() {
+		var (
+			body = `{"foo": "bar"}`
+			req  *http.Request
+			err  error
+		)
 
-	if !reflect.DeepEqual(body, []byte(`{"a": 1}`)) {
-		t.Fatal("The body should've been set to some JSON we provided but was:", body)
-	}
-}
+		BeforeEach(func() {
+			req, err = query.NewRequestBody(
+				"PATCH", "/settings", strings.NewReader(body),
+			)
+		})
+
+		It("should return request and no errors", func() {
+			Expect(req).ToNot(BeNil())
+			Expect(err).To(BeNil())
+		})
+
+		It("should set method and URL", func() {
+			Expect(req.Method).To(Equal("PATCH"))
+			Expect(req.URL.String()).To(Equal("https://example.com/api/settings"))
+		})
+
+		It("should set request body", func() {
+			buf, err := ioutil.ReadAll(req.Body)
+			defer req.Body.Close()
+
+			Expect(err).To(BeNil())
+			Expect(buf).To(MatchJSON(body))
+		})
+	})
+})
