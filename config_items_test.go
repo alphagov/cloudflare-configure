@@ -184,7 +184,7 @@ var _ = Describe("ConfigItems", func() {
 			})
 		})
 
-		Describe("LoadConfigItems()", func () {
+		Describe("LoadConfigItems()", func() {
 			It("should read ConfigItems from a JSON file", func() {
 				err := ioutil.WriteFile(tempFile, []byte(configJSON), 0644)
 				Expect(err).To(BeNil())
