@@ -56,12 +56,12 @@ func main() {
 	}
 
 	configDesired := readConfig(*configFile)
-	update, err := CompareConfigItemsForUpdate(config, configDesired)
+	configUpdate, err := CompareConfigItemsForUpdate(config, configDesired)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	cloudflare.Update(*zoneID, update, *dryRun)
+	cloudflare.Update(*zoneID, configUpdate, *dryRun)
 }
 
 // Ensure that all mandatory flags have been provided.
