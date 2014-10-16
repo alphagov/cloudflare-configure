@@ -1,10 +1,8 @@
 package main
 
 import (
-	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 )
@@ -51,11 +49,19 @@ func main() {
 
 	if *download {
 		log.Println("Saving configuration..")
-		writeConfig(config, *configFile)
+		err := SaveConfigItems(config, *configFile)
+		if err != nil {
+			log.Fatalln(err)
+		}
+
 		return
 	}
 
-	configDesired := readConfig(*configFile)
+	configDesired, err := LoadConfigItems(*configFile)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
 	configUpdate, err := CompareConfigItemsForUpdate(config, configDesired)
 	if err != nil {
 		log.Fatalln(err)
@@ -80,32 +86,4 @@ func printZones(zones []CloudFlareZoneItem) {
 	for _, zone := range zones {
 		fmt.Println(zone.ID, "\t", zone.Name)
 	}
-}
-
-func writeConfig(config ConfigItems, file string) {
-	bs, err := json.MarshalIndent(config, "", "    ")
-	if err != nil {
-		log.Fatalln("Parsing config to JSON failed:", err)
-	}
-
-	err = ioutil.WriteFile(file, bs, 0644)
-	if err != nil {
-		log.Fatalln("Writing config file failed:", err)
-	}
-}
-
-// Load a JSON config from disk.
-func readConfig(file string) ConfigItems {
-	bs, err := ioutil.ReadFile(file)
-	if err != nil {
-		log.Fatalln("Reading config file failed:", err)
-	}
-
-	var config ConfigItems
-	err = json.Unmarshal(bs, &config)
-	if err != nil {
-		log.Fatalln("Parsing config file as JSON failed:", err)
-	}
-
-	return config
 }
