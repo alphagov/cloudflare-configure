@@ -25,7 +25,7 @@ type CloudFlareZoneItem struct {
 	Name string
 }
 
-type CloudFlareConfigItem struct {
+type CloudFlareSetting struct {
 	ID         string
 	Value      interface{}
 	ModifiedOn string `json:"modified_on"`
@@ -59,7 +59,7 @@ func (c *CloudFlare) Set(zone, id string, val interface{}) error {
 	return err
 }
 
-func (c *CloudFlare) Settings(zoneID string) ([]CloudFlareConfigItem, error) {
+func (c *CloudFlare) Settings(zoneID string) ([]CloudFlareSetting, error) {
 	req, err := c.Query.NewRequest("GET", fmt.Sprintf("/zones/%s/settings", zoneID))
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func (c *CloudFlare) Settings(zoneID string) ([]CloudFlareConfigItem, error) {
 		return nil, err
 	}
 
-	var settings []CloudFlareConfigItem
+	var settings []CloudFlareSetting
 	err = json.Unmarshal(response.Result, &settings)
 
 	return settings, err

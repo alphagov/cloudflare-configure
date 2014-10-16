@@ -167,17 +167,17 @@ var _ = Describe("CloudFlare", func() {
 			)
 		})
 
-		It("should return two CloudFlareConfigItems", func() {
+		It("should return two CloudFlareSettings", func() {
 			settings, err := cloudFlare.Settings(zoneID)
 
-			Expect(settings).To(Equal([]CloudFlareConfigItem{
-				CloudFlareConfigItem{
+			Expect(settings).To(Equal([]CloudFlareSetting{
+				CloudFlareSetting{
 					ID:         "always_online",
 					Value:      "off",
 					ModifiedOn: "2014-07-09T11:50:56.595672Z",
 					Editable:   true,
 				},
-				CloudFlareConfigItem{
+				CloudFlareSetting{
 					ID:         "browser_cache_ttl",
 					Value:      float64(14400),
 					ModifiedOn: "2014-07-09T11:50:56.595672Z",
