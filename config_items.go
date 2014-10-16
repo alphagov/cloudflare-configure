@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/json"
+	"io/ioutil"
 	"reflect"
 )
 
@@ -51,6 +53,16 @@ func DifferenceConfigItems(from, to ConfigItems) ConfigItems {
 	}
 
 	return config
+}
+
+func SaveConfigItems(config ConfigItems, file string) error {
+	bs, err := json.MarshalIndent(config, "", "    ")
+	if err != nil {
+		return err
+	}
+
+	err = ioutil.WriteFile(file, bs, 0644)
+	return err
 }
 
 func UnionConfigItems(first, second ConfigItems) ConfigItems {

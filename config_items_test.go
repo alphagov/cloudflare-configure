@@ -5,6 +5,10 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+
+	"path/filepath"
+	"io/ioutil"
+	"os"
 )
 
 var _ = Describe("ConfigItems", func() {
@@ -128,6 +132,56 @@ var _ = Describe("ConfigItems", func() {
 					"browser_cache_ttl": 14400,
 				},
 			))
+		})
+	})
+
+	Describe("file handling", func() {
+		var (
+			tempDir string
+			tempFile string
+		)
+
+		BeforeEach(func() {
+			var err error
+			tempDir, err = ioutil.TempDir("", "cloudflare-configure")
+			Expect(err).To(BeNil())
+
+			tempFile = filepath.Join(tempDir, "cloudflare-configure.json")
+		})
+
+		AfterEach(func() {
+			err := os.RemoveAll(tempDir)
+			Expect(err).To(BeNil())
+		})
+
+		configObject := ConfigItems{
+			"always_online": "off",
+			"browswer_cache_ttl": float64(14400),
+			"mobile_redirect": map[string]interface{} {
+				"mobile_subdomain": nil,
+				"status": "off",
+				"strip_uri": false,
+			},
+		}
+		configJSON := `{
+			"always_online": "off",
+			"browswer_cache_ttl": 14400,
+			"mobile_redirect": {
+				"mobile_subdomain": null,
+				"status": "off",
+				"strip_uri": false
+			}
+		}`
+
+		Describe("SaveConfigItems()", func () {
+			It("should save ConfigItems to a file as pretty-formatted JSON", func() {
+				err := SaveConfigItems(configObject, tempFile)
+				Expect(err).To(BeNil())
+
+				out, err := ioutil.ReadFile(tempFile)
+				Expect(out).To(MatchJSON(configJSON))
+				Expect(err).To(BeNil())
+			})
 		})
 	})
 })
