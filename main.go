@@ -47,7 +47,7 @@ func main() {
 	if err != nil {
 		log.Fatal("Couldn't read settings", err)
 	}
-	config := convertToConfig(settings)
+	config := settings.ConfigItems()
 
 	if *download {
 		log.Println("Saving configuration..")
@@ -79,17 +79,6 @@ func printZones(zones []CloudFlareZoneItem) {
 	for _, zone := range zones {
 		fmt.Println(zone.ID, "\t", zone.Name)
 	}
-}
-
-// Convert an array-of-maps that represent config items into a flat map that
-// is more human readable and easier to check for the existence of keys.
-func convertToConfig(settings CloudFlareSettings) ConfigItems {
-	config := make(ConfigItems)
-	for _, setting := range settings.Items {
-		config[setting.ID] = setting.Value
-	}
-
-	return config
 }
 
 func writeConfig(config ConfigItems, file string) {
