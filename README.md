@@ -10,7 +10,7 @@ JSON files and using [CloudFlare's v4 API].
 
 You will need [Go]. Any 1.x version should do. To compile the binary:
 
-    go build
+    make
 
 [Go]: http://golang.org/
 
