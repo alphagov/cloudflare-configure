@@ -356,10 +356,10 @@ var _ = Describe("CloudFlare", func() {
 				Expect(server.ReceivedRequests()).To(HaveLen(0))
 				Expect(err).To(BeNil())
 
-				Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
+				Eventually(logbuf).Should(gbytes.Say(fmt.Sprintf(
 					`Would have changed "always_online" from "off" to "%s"`, settingValAlwaysOnline,
 				)))
-				Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
+				Eventually(logbuf).Should(gbytes.Say(fmt.Sprintf(
 					`Would have changed "browser_cache_ttl" from <nil> to %d`, settingValBrowserCache,
 				)))
 			})
