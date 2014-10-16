@@ -6,9 +6,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	"path/filepath"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 )
 
 var _ = Describe("ConfigItems", func() {
@@ -137,7 +137,7 @@ var _ = Describe("ConfigItems", func() {
 
 	Describe("file handling", func() {
 		var (
-			tempDir string
+			tempDir  string
 			tempFile string
 		)
 
@@ -155,12 +155,12 @@ var _ = Describe("ConfigItems", func() {
 		})
 
 		configObject := ConfigItems{
-			"always_online": "off",
+			"always_online":      "off",
 			"browswer_cache_ttl": float64(14400),
-			"mobile_redirect": map[string]interface{} {
+			"mobile_redirect": map[string]interface{}{
 				"mobile_subdomain": nil,
-				"status": "off",
-				"strip_uri": false,
+				"status":           "off",
+				"strip_uri":        false,
 			},
 		}
 		configJSON := `{
@@ -173,7 +173,7 @@ var _ = Describe("ConfigItems", func() {
 			}
 		}`
 
-		Describe("SaveConfigItems()", func () {
+		Describe("SaveConfigItems()", func() {
 			It("should save ConfigItems to a file as pretty-formatted JSON", func() {
 				err := SaveConfigItems(configObject, tempFile)
 				Expect(err).To(BeNil())
