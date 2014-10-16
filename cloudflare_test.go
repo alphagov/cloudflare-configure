@@ -285,48 +285,84 @@ var _ = Describe("CloudFlare", func() {
 			)
 		})
 
-		It("should set two config items and log progress", func() {
-			err := cloudFlare.Update(zoneID, ConfigItemsForUpdate{
-				"always_online": ConfigItemForUpdate{
-					Current:  "off",
-					Expected: settingValAlwaysOnline,
-				},
-				"browser_cache_ttl": ConfigItemForUpdate{
-					Current:  nil,
-					Expected: settingValBrowserCache,
-				},
+		Context("logOnly false", func() {
+			logOnly := false
+
+			It("should set two config items and log progress", func() {
+				config := ConfigItemsForUpdate{
+					"always_online": ConfigItemForUpdate{
+						Current:  "off",
+						Expected: settingValAlwaysOnline,
+					},
+					"browser_cache_ttl": ConfigItemForUpdate{
+						Current:  nil,
+						Expected: settingValBrowserCache,
+					},
+				}
+
+				err := cloudFlare.Update(zoneID, config, logOnly)
+
+				Expect(server.ReceivedRequests()).To(HaveLen(2))
+				Expect(err).To(BeNil())
+
+				Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
+					`Changing "always_online" from "off" to "%s"`, settingValAlwaysOnline,
+				)))
+				Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
+					`Changing "browser_cache_ttl" from <nil> to %d`, settingValBrowserCache,
+				)))
 			})
 
-			Expect(server.ReceivedRequests()).To(HaveLen(2))
-			Expect(err).To(BeNil())
+			It("should return a public error when key is not supported by remote", func() {
+				config := ConfigItemsForUpdate{
+					"non_existent_devops_hero": ConfigItemForUpdate{
+						Current:  nil,
+						Expected: "always devopsing",
+					},
+					"browser_cache_ttl": ConfigItemForUpdate{
+						Current:  nil,
+						Expected: settingValBrowserCache,
+					},
+				}
 
-			Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
-				`Changing "always_online" from "off" to "%s"`, settingValAlwaysOnline,
-			)))
-			Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
-				`Changing "browser_cache_ttl" from <nil> to %d`, settingValBrowserCache,
-			)))
+				err := cloudFlare.Update(zoneID, config, false)
+
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
+				Expect(err).ToNot(BeNil())
+
+				// TODO:
+				// What happens when we get a non-200 error for a given key we're
+				// trying to set? What should we do and how should it be handled?
+			})
 		})
 
-		It("should return a public error when key is not supported by remote", func() {
-			err := cloudFlare.Update(zoneID, ConfigItemsForUpdate{
-				"non_existent_devops_hero": ConfigItemForUpdate{
-					Current:  nil,
-					Expected: "always devopsing",
-				},
-				"browser_cache_ttl": ConfigItemForUpdate{
-					Current:  nil,
-					Expected: settingValBrowserCache,
-				},
+		Context("logOnly true", func() {
+			logOnly := true
+
+			It("should log progress without setting config items", func() {
+				config := ConfigItemsForUpdate{
+					"always_online": ConfigItemForUpdate{
+						Current:  "off",
+						Expected: settingValAlwaysOnline,
+					},
+					"browser_cache_ttl": ConfigItemForUpdate{
+						Current:  nil,
+						Expected: settingValBrowserCache,
+					},
+				}
+
+				err := cloudFlare.Update(zoneID, config, logOnly)
+
+				Expect(server.ReceivedRequests()).To(HaveLen(0))
+				Expect(err).To(BeNil())
+
+				Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
+					`Would have changed "always_online" from "off" to "%s"`, settingValAlwaysOnline,
+				)))
+				Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
+					`Would have changed "browser_cache_ttl" from <nil> to %d`, settingValBrowserCache,
+				)))
 			})
-
-			Expect(server.ReceivedRequests()).To(HaveLen(1))
-			Expect(err).ToNot(BeNil())
-
-			// TODO:
-			// What happens when we get a non-200 error for a given key we're
-			// trying to set? What should we do and how should it be handled?
 		})
 	})
-
 })

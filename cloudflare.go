@@ -90,12 +90,20 @@ func (c *CloudFlare) Settings(zoneID string) (CloudFlareSettings, error) {
 	return settings, err
 }
 
-func (c *CloudFlare) Update(zone string, config ConfigItemsForUpdate) error {
-	for key, vals := range config {
-		c.log.Printf("Changing %q from %#v to %#v", key, vals.Current, vals.Expected)
+func (c *CloudFlare) Update(zone string, config ConfigItemsForUpdate, logOnly bool) error {
+	var action string
+	switch logOnly {
+		case true: action = "Would have changed"
+		case false: action = "Changing"
+	}
 
-		if err := c.Set(zone, key, vals.Expected); err != nil {
-			return err
+	for key, vals := range config {
+		c.log.Printf("%s %q from %#v to %#v", action, key, vals.Current, vals.Expected)
+
+		if !logOnly {
+			if err := c.Set(zone, key, vals.Expected); err != nil {
+				return err
+			}
 		}
 	}
 
