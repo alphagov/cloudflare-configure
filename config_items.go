@@ -55,6 +55,18 @@ func DifferenceConfigItems(from, to ConfigItems) ConfigItems {
 	return config
 }
 
+func LoadConfigItems(file string) (ConfigItems, error) {
+	bs, err := ioutil.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	var config ConfigItems
+	err = json.Unmarshal(bs, &config)
+
+	return config, err
+}
+
 func SaveConfigItems(config ConfigItems, file string) error {
 	bs, err := json.MarshalIndent(config, "", "    ")
 	if err != nil {
