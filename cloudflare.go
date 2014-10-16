@@ -92,9 +92,10 @@ func (c *CloudFlare) Settings(zoneID string) (CloudFlareSettings, error) {
 
 func (c *CloudFlare) Update(zone string, config ConfigItemsForUpdate, logOnly bool) error {
 	var action string
-	switch logOnly {
-		case true: action = "Would have changed"
-		case false: action = "Changing"
+	if logOnly {
+		action = "Would have changed"
+	} else {
+		action = "Changing"
 	}
 
 	for key, vals := range config {
