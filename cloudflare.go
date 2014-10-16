@@ -90,9 +90,9 @@ func (c *CloudFlare) Settings(zoneID string) (CloudFlareSettings, error) {
 	return settings, err
 }
 
-func (c *CloudFlare) Update(zone string, config ConfigItems) error {
-	for key, val := range config {
-		if err := c.Set(zone, key, val); err != nil {
+func (c *CloudFlare) Update(zone string, config ConfigItemsForUpdate) error {
+	for key, vals := range config {
+		if err := c.Set(zone, key, vals.Expected); err != nil {
 			return err
 		}
 	}

@@ -279,9 +279,15 @@ var _ = Describe("CloudFlare", func() {
 		})
 
 		It("should set two config items", func() {
-			err := cloudFlare.Update(zoneID, ConfigItems{
-				"always_online":     settingValAlwaysOnline,
-				"browser_cache_ttl": settingValBrowserCache,
+			err := cloudFlare.Update(zoneID, ConfigItemsForUpdate{
+				"always_online": ConfigItemForUpdate{
+					Current:  "off",
+					Expected: settingValAlwaysOnline,
+				},
+				"browser_cache_ttl": ConfigItemForUpdate{
+					Current:  nil,
+					Expected: settingValBrowserCache,
+				},
 			})
 
 			Expect(server.ReceivedRequests()).To(HaveLen(2))
@@ -289,9 +295,15 @@ var _ = Describe("CloudFlare", func() {
 		})
 
 		It("should return a public error when key is not supported by remote", func() {
-			err := cloudFlare.Update(zoneID, ConfigItems{
-				"non_existent_devops_hero": "always devopsing",
-				"browser_cache_ttl":        settingValBrowserCache,
+			err := cloudFlare.Update(zoneID, ConfigItemsForUpdate{
+				"non_existent_devops_hero": ConfigItemForUpdate{
+					Current:  nil,
+					Expected: "always devopsing",
+				},
+				"browser_cache_ttl": ConfigItemForUpdate{
+					Current:  nil,
+					Expected: settingValBrowserCache,
+				},
 			})
 
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
