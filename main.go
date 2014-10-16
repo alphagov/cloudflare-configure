@@ -83,9 +83,9 @@ func printZones(zones []CloudFlareZoneItem) {
 
 // Convert an array-of-maps that represent config items into a flat map that
 // is more human readable and easier to check for the existence of keys.
-func convertToConfig(settings []CloudFlareSetting) ConfigItems {
+func convertToConfig(settings CloudFlareSettings) ConfigItems {
 	config := make(ConfigItems)
-	for _, setting := range settings {
+	for _, setting := range settings.Items {
 		config[setting.ID] = setting.Value
 	}
 
