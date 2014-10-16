@@ -31,7 +31,8 @@ func main() {
 		AuthKey:   *authKey,
 		RootURL:   RootURL,
 	}
-	cloudflare := NewCloudFlare(query)
+	logger := log.New(os.Stdout, "", log.LstdFlags)
+	cloudflare := NewCloudFlare(query, logger)
 
 	if *listZones {
 		zones, err := cloudflare.Zones()
