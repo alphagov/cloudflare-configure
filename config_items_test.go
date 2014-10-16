@@ -8,12 +8,12 @@ import (
 )
 
 var _ = Describe("ConfigItems", func() {
-	Describe("Compare()", func() {
+	Describe("CompareConfigItemsForUpdate()", func() {
 		settingValAlwaysOnline := "on"
 		settingValBrowserCache := 123
 
 		It("should return nothing when local and remote are identical", func() {
-			config, err := CompareConfigItems(
+			config, err := CompareConfigItemsForUpdate(
 				ConfigItems{
 					"always_online":     settingValAlwaysOnline,
 					"browser_cache_ttl": settingValBrowserCache,
@@ -24,12 +24,12 @@ var _ = Describe("ConfigItems", func() {
 				},
 			)
 
-			Expect(config).To(Equal(ConfigItems{}))
+			Expect(config).To(Equal(ConfigItemsForUpdate{}))
 			Expect(err).To(BeNil())
 		})
 
 		It("should return all items in local when remote is empty", func() {
-			config, err := CompareConfigItems(
+			config, err := CompareConfigItemsForUpdate(
 				ConfigItems{},
 				ConfigItems{
 					"always_online":     settingValAlwaysOnline,
@@ -37,15 +37,21 @@ var _ = Describe("ConfigItems", func() {
 				},
 			)
 
-			Expect(config).To(Equal(ConfigItems{
-				"always_online":     settingValAlwaysOnline,
-				"browser_cache_ttl": settingValBrowserCache,
+			Expect(config).To(Equal(ConfigItemsForUpdate{
+				"always_online": ConfigItemForUpdate{
+					Current:  nil,
+					Expected: settingValAlwaysOnline,
+				},
+				"browser_cache_ttl": ConfigItemForUpdate{
+					Current:  nil,
+					Expected: settingValBrowserCache,
+				},
 			}))
 			Expect(err).To(BeNil())
 		})
 
 		It("should return one item in local overwriting always_online", func() {
-			config, err := CompareConfigItems(
+			config, err := CompareConfigItemsForUpdate(
 				ConfigItems{
 					"always_online":     "off",
 					"browser_cache_ttl": settingValBrowserCache,
@@ -56,14 +62,17 @@ var _ = Describe("ConfigItems", func() {
 				},
 			)
 
-			Expect(config).To(Equal(ConfigItems{
-				"always_online": settingValAlwaysOnline,
+			Expect(config).To(Equal(ConfigItemsForUpdate{
+				"always_online": ConfigItemForUpdate{
+					Current:  "off",
+					Expected: settingValAlwaysOnline,
+				},
 			}))
 			Expect(err).To(BeNil())
 		})
 
 		It("should return a public error when item is missing in local", func() {
-			config, err := CompareConfigItems(
+			config, err := CompareConfigItemsForUpdate(
 				ConfigItems{
 					"always_online":     settingValAlwaysOnline,
 					"browser_cache_ttl": settingValBrowserCache,

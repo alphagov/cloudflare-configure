@@ -14,7 +14,14 @@ func (c ConfigMismatch) Error() string {
 
 type ConfigItems map[string]interface{}
 
-func CompareConfigItems(current, expected ConfigItems) (ConfigItems, error) {
+type ConfigItemsForUpdate map[string]ConfigItemForUpdate
+
+type ConfigItemForUpdate struct {
+	Current  interface{}
+	Expected interface{}
+}
+
+func CompareConfigItemsForUpdate(current, expected ConfigItems) (ConfigItemsForUpdate, error) {
 	union := UnionConfigItems(current, expected)
 	differenceCurrentAndUnion := DifferenceConfigItems(current, union)
 	differenceExpectedAndUnion := DifferenceConfigItems(expected, union)
@@ -23,7 +30,15 @@ func CompareConfigItems(current, expected ConfigItems) (ConfigItems, error) {
 		return nil, ConfigMismatch{Missing: differenceExpectedAndUnion}
 	}
 
-	return differenceCurrentAndUnion, nil
+	update := ConfigItemsForUpdate{}
+	for key, val := range differenceCurrentAndUnion {
+		update[key] = ConfigItemForUpdate{
+			Current:  current[key],
+			Expected: val,
+		}
+	}
+
+	return update, nil
 }
 
 func DifferenceConfigItems(from, to ConfigItems) ConfigItems {
