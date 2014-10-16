@@ -284,6 +284,7 @@ var _ = Describe("CloudFlare", func() {
 				),
 			)
 		})
+
 		It("should set two config items and log progress", func() {
 			err := cloudFlare.Update(zoneID, ConfigItemsForUpdate{
 				"always_online": ConfigItemForUpdate{
