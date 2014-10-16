@@ -38,7 +38,7 @@ var _ = Describe("CloudFlare", func() {
 	Describe("CloudFlareSettings", func() {
 		Describe("ConfigItems()", func() {
 			It("should return ConfigItems", func() {
-				settings := CloudFlareSettings{Items: []CloudFlareSetting{
+				settings := CloudFlareSettings{
 					CloudFlareSetting{
 						ID:         "always_online",
 						Value:      "off",
@@ -50,7 +50,7 @@ var _ = Describe("CloudFlare", func() {
 						Value:      14400,
 						ModifiedOn: "2014-07-09T11:50:56.595672Z",
 						Editable:   true,
-					}},
+					},
 				}
 
 				Expect(settings.ConfigItems()).To(Equal(ConfigItems{
@@ -203,7 +203,7 @@ var _ = Describe("CloudFlare", func() {
 		It("should return two CloudFlareSettings", func() {
 			settings, err := cloudFlare.Settings(zoneID)
 
-			Expect(settings).To(Equal(CloudFlareSettings{Items: []CloudFlareSetting{
+			Expect(settings).To(Equal(CloudFlareSettings{
 				CloudFlareSetting{
 					ID:         "always_online",
 					Value:      "off",
@@ -216,7 +216,7 @@ var _ = Describe("CloudFlare", func() {
 					ModifiedOn: "2014-07-09T11:50:56.595672Z",
 					Editable:   true,
 				},
-			}}))
+			}))
 			Expect(err).To(BeNil())
 		})
 	})

@@ -33,13 +33,11 @@ type CloudFlareSetting struct {
 	Editable   bool
 }
 
-type CloudFlareSettings struct {
-	Items []CloudFlareSetting
-}
+type CloudFlareSettings []CloudFlareSetting
 
-func (c *CloudFlareSettings) ConfigItems() ConfigItems {
+func (c CloudFlareSettings) ConfigItems() ConfigItems {
 	config := ConfigItems{}
-	for _, setting := range c.Items {
+	for _, setting := range c {
 		config[setting.ID] = setting.Value
 	}
 
@@ -87,7 +85,7 @@ func (c *CloudFlare) Settings(zoneID string) (CloudFlareSettings, error) {
 		return settings, err
 	}
 
-	err = json.Unmarshal(response.Result, &settings.Items)
+	err = json.Unmarshal(response.Result, &settings)
 
 	return settings, err
 }
