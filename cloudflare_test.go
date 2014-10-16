@@ -221,7 +221,79 @@ var _ = Describe("CloudFlare", func() {
 		})
 	})
 
-	Describe("CompareAndSet()", func() {
+	Describe("Compare()", func() {
+		settingValAlwaysOnline := "on"
+		settingValBrowserCache := 123
+
+		It("should return nothing when local and remote are identical", func() {
+			config, err := cloudFlare.Compare(
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+			)
+
+			Expect(config).To(Equal(ConfigItems{}))
+			Expect(err).To(BeNil())
+		})
+
+		It("should return all items in local when remote is empty", func() {
+			config, err := cloudFlare.Compare(
+				ConfigItems{},
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+			)
+
+			Expect(config).To(Equal(ConfigItems{
+				"always_online":     settingValAlwaysOnline,
+				"browser_cache_ttl": settingValBrowserCache,
+			}))
+			Expect(err).To(BeNil())
+		})
+
+		It("should return one item in local overwriting always_online", func() {
+			config, err := cloudFlare.Compare(
+				ConfigItems{
+					"always_online":     "off",
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+			)
+
+			Expect(config).To(Equal(ConfigItems{
+				"always_online": settingValAlwaysOnline,
+			}))
+			Expect(err).To(BeNil())
+		})
+
+		It("should return a public error when item is missing in local", func() {
+			config, err := cloudFlare.Compare(
+				ConfigItems{
+					"always_online":     settingValAlwaysOnline,
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+				ConfigItems{
+					"browser_cache_ttl": settingValBrowserCache,
+				},
+			)
+
+			Expect(config).To(BeNil())
+			Expect(err).ToNot(BeNil())
+			Expect(err).To(MatchError(
+				ConfigMismatch{Missing: ConfigItems{"always_online": settingValAlwaysOnline}}))
+		})
+	})
+
+	Describe("Update()", func() {
 		zoneID := "123"
 		settingValAlwaysOnline := "on"
 		settingValBrowserCache := 123
@@ -252,78 +324,21 @@ var _ = Describe("CloudFlare", func() {
 			)
 		})
 
-		It("should set nothing when local and remote are identical", func() {
-			err := cloudFlare.CompareAndSet(zoneID,
-				ConfigItems{
-					"always_online":     settingValAlwaysOnline,
-					"browser_cache_ttl": settingValBrowserCache,
-				},
-				ConfigItems{
-					"always_online":     settingValAlwaysOnline,
-					"browser_cache_ttl": settingValBrowserCache,
-				},
-			)
-
-			Expect(server.ReceivedRequests()).To(HaveLen(0))
-			Expect(err).To(BeNil())
-		})
-
-		It("should set all items in remote when remote is empty", func() {
-			err := cloudFlare.CompareAndSet(zoneID,
-				ConfigItems{},
-				ConfigItems{
-					"always_online":     settingValAlwaysOnline,
-					"browser_cache_ttl": settingValBrowserCache,
-				},
-			)
+		It("should set two config items", func() {
+			err := cloudFlare.Update(zoneID, ConfigItems{
+				"always_online":     settingValAlwaysOnline,
+				"browser_cache_ttl": settingValBrowserCache,
+			})
 
 			Expect(server.ReceivedRequests()).To(HaveLen(2))
 			Expect(err).To(BeNil())
 		})
 
-		It("should set one item in remote overwriting always_online", func() {
-			err := cloudFlare.CompareAndSet(zoneID,
-				ConfigItems{
-					"always_online":     "off",
-					"browser_cache_ttl": settingValBrowserCache,
-				},
-				ConfigItems{
-					"always_online":     settingValAlwaysOnline,
-					"browser_cache_ttl": settingValBrowserCache,
-				},
-			)
-
-			Expect(server.ReceivedRequests()).To(HaveLen(1))
-			Expect(err).To(BeNil())
-		})
-
-		It("should return a public error when item is missing in local", func() {
-			err := cloudFlare.CompareAndSet(zoneID,
-				ConfigItems{
-					"always_online":     settingValAlwaysOnline,
-					"browser_cache_ttl": settingValBrowserCache,
-				},
-				ConfigItems{
-					"browser_cache_ttl": settingValBrowserCache,
-				},
-			)
-
-			Expect(server.ReceivedRequests()).To(HaveLen(0))
-			Expect(err).ToNot(BeNil())
-			Expect(err).To(MatchError(
-				ConfigMismatch{Missing: ConfigItems{"always_online": settingValAlwaysOnline}}))
-		})
-
 		It("should return a public error when key is not supported by remote", func() {
-			err := cloudFlare.CompareAndSet(zoneID,
-				ConfigItems{
-					"browser_cache_ttl": settingValBrowserCache,
-				},
-				ConfigItems{
-					"non_existent_devops_hero": "always devopsing",
-					"browser_cache_ttl":        settingValBrowserCache,
-				},
-			)
+			err := cloudFlare.Update(zoneID, ConfigItems{
+				"non_existent_devops_hero": "always devopsing",
+				"browser_cache_ttl":        settingValBrowserCache,
+			})
 
 			Expect(server.ReceivedRequests()).To(HaveLen(1))
 			Expect(err).ToNot(BeNil())
@@ -333,4 +348,5 @@ var _ = Describe("CloudFlare", func() {
 			// trying to set? What should we do and how should it be handled?
 		})
 	})
+
 })
