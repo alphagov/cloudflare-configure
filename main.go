@@ -7,8 +7,6 @@ import (
 	"os"
 )
 
-const RootURL = "https://api.cloudflare.com/v4"
-
 func main() {
 	var (
 		authEmail  = flag.String("email", "", "Authentication email address [required]")
@@ -26,7 +24,7 @@ func main() {
 	query := &CloudFlareQuery{
 		AuthEmail: *authEmail,
 		AuthKey:   *authKey,
-		RootURL:   RootURL,
+		RootURL:   "https://api.cloudflare.com/v4",
 	}
 	logger := log.New(os.Stdout, "", log.LstdFlags)
 	cloudflare := NewCloudFlare(query, logger)
