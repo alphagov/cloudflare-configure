@@ -14,6 +14,18 @@ func (c ConfigMismatch) Error() string {
 
 type ConfigItems map[string]interface{}
 
+func CompareConfigItems(current, expected ConfigItems) (ConfigItems, error) {
+	union := UnionConfigItems(current, expected)
+	differenceCurrentAndUnion := DifferenceConfigItems(current, union)
+	differenceExpectedAndUnion := DifferenceConfigItems(expected, union)
+
+	if len(differenceExpectedAndUnion) > len(differenceCurrentAndUnion) {
+		return nil, ConfigMismatch{Missing: differenceExpectedAndUnion}
+	}
+
+	return differenceCurrentAndUnion, nil
+}
+
 func UnionConfigItems(first, second ConfigItems) ConfigItems {
 	config := ConfigItems{}
 

@@ -41,18 +41,6 @@ type CloudFlare struct {
 	Query  *CloudFlareQuery
 }
 
-func (c *CloudFlare) Compare(current, expected ConfigItems) (ConfigItems, error) {
-	union := UnionConfigItems(current, expected)
-	differenceCurrentAndUnion := DifferenceConfigItems(current, union)
-	differenceExpectedAndUnion := DifferenceConfigItems(expected, union)
-
-	if len(differenceExpectedAndUnion) > len(differenceCurrentAndUnion) {
-		return nil, ConfigMismatch{Missing: differenceExpectedAndUnion}
-	}
-
-	return differenceCurrentAndUnion, nil
-}
-
 func (c *CloudFlare) Set(zone, id string, val interface{}) error {
 	body, err := json.Marshal(&CloudFlareRequestItem{Value: val})
 	if err != nil {
