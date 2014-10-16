@@ -5,9 +5,11 @@ import (
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
+	"github.com/onsi/gomega/gbytes"
 	"github.com/onsi/gomega/ghttp"
 
 	"fmt"
+	"log"
 	"net/http"
 )
 
@@ -15,13 +17,18 @@ var _ = Describe("CloudFlare", func() {
 	var (
 		server     *ghttp.Server
 		query      *CloudFlareQuery
+		logbuf     *gbytes.Buffer
 		cloudFlare *CloudFlare
 	)
 
 	BeforeEach(func() {
 		server = ghttp.NewServer()
 		query = &CloudFlareQuery{RootURL: server.URL()}
-		cloudFlare = NewCloudFlare(query)
+
+		logbuf = gbytes.NewBuffer()
+		logger := log.New(logbuf, "", 0)
+
+		cloudFlare = NewCloudFlare(query, logger)
 	})
 
 	AfterEach(func() {
@@ -277,8 +284,7 @@ var _ = Describe("CloudFlare", func() {
 				),
 			)
 		})
-
-		It("should set two config items", func() {
+		It("should set two config items and log progress", func() {
 			err := cloudFlare.Update(zoneID, ConfigItemsForUpdate{
 				"always_online": ConfigItemForUpdate{
 					Current:  "off",
@@ -292,6 +298,13 @@ var _ = Describe("CloudFlare", func() {
 
 			Expect(server.ReceivedRequests()).To(HaveLen(2))
 			Expect(err).To(BeNil())
+
+			Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
+				`Changing "always_online" from "off" to "%s"`, settingValAlwaysOnline,
+			)))
+			Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
+				`Changing "browser_cache_ttl" from <nil> to %d`, settingValBrowserCache,
+			)))
 		})
 
 		It("should return a public error when key is not supported by remote", func() {

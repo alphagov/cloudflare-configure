@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 )
 
@@ -52,6 +53,7 @@ type CloudFlareRequestItem struct {
 type CloudFlare struct {
 	Client *http.Client
 	Query  *CloudFlareQuery
+	log    *log.Logger
 }
 
 func (c *CloudFlare) Set(zone, id string, val interface{}) error {
@@ -92,6 +94,8 @@ func (c *CloudFlare) Settings(zoneID string) (CloudFlareSettings, error) {
 
 func (c *CloudFlare) Update(zone string, config ConfigItemsForUpdate) error {
 	for key, vals := range config {
+		c.log.Printf("Changing %q from %#v to %#v", key, vals.Current, vals.Expected)
+
 		if err := c.Set(zone, key, vals.Expected); err != nil {
 			return err
 		}
@@ -146,9 +150,10 @@ func (c *CloudFlare) MakeRequest(request *http.Request) (*CloudFlareResponse, er
 	return &response, err
 }
 
-func NewCloudFlare(query *CloudFlareQuery) *CloudFlare {
+func NewCloudFlare(query *CloudFlareQuery, logger *log.Logger) *CloudFlare {
 	return &CloudFlare{
 		Client: &http.Client{},
 		Query:  query,
+		log:    logger,
 	}
 }
