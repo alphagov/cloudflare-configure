@@ -5,6 +5,7 @@ go:
   - 1.3
 
 before_install:
+  - export PATH=$HOME/gopath/bin:$PATH
   - go get github.com/tools/godep
 
 notifications:
