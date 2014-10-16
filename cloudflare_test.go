@@ -83,11 +83,11 @@ var _ = Describe("CloudFlare", func() {
 			zones, err := cloudFlare.Zones()
 
 			Expect(zones).To(Equal([]CloudFlareZoneItem{
-				CloudFlareZoneItem{
+				{
 					ID:   "123",
 					Name: "foo",
 				},
-				CloudFlareZoneItem{
+				{
 					ID:   "456",
 					Name: "bar",
 				},
@@ -276,7 +276,7 @@ var _ = Describe("CloudFlare", func() {
 				ghttp.CombineHandlers(
 					ghttp.RespondWithJSONEncoded(http.StatusBadRequest, CloudFlareResponse{
 						Success: false,
-						Errors: []CloudFlareError{CloudFlareError{
+						Errors: []CloudFlareError{{
 							Code:    1006,
 							Message: "Unrecognized zone setting name",
 						}},
