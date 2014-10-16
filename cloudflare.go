@@ -43,14 +43,14 @@ type CloudFlare struct {
 
 func (c *CloudFlare) CompareAndSet(zone string, current, expected ConfigItems) error {
 	union := UnionConfigItems(current, expected)
-	differenceExpected := DifferenceConfigItems(current, union)
-	differenceActual := DifferenceConfigItems(expected, union)
+	differenceCurrentAndUnion := DifferenceConfigItems(current, union)
+	differenceExpectedAndUnion := DifferenceConfigItems(expected, union)
 
-	if len(differenceActual) > len(differenceExpected) {
-		return ConfigMismatch{Missing: differenceActual}
+	if len(differenceExpectedAndUnion) > len(differenceCurrentAndUnion) {
+		return ConfigMismatch{Missing: differenceExpectedAndUnion}
 	}
 
-	for key, val := range differenceExpected {
+	for key, val := range differenceCurrentAndUnion {
 		if err := c.Set(zone, key, val); err != nil {
 			return err
 		}
