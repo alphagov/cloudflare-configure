@@ -1,1 +1,5 @@
 cloudflare-configure
+
+# Godeps
+Godeps/_workspace
+Godeps/Readme
