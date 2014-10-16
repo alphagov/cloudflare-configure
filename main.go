@@ -7,7 +7,6 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
-	"reflect"
 )
 
 const RootURL = "https://api.cloudflare.com/v4"
@@ -56,12 +55,13 @@ func main() {
 		return
 	}
 
-	if *dryRun {
-		log.Println("Dry run mode. Changes won't be submitted")
-	}
-	log.Println("Comparing and updating configuration..")
 	configDesired := readConfig(*configFile)
-	compareAndUpdate(cloudflare, *zoneID, config, configDesired, *dryRun)
+	configUpdate, err := CompareConfigItemsForUpdate(config, configDesired)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	cloudflare.Update(*zoneID, configUpdate, *dryRun)
 }
 
 // Ensure that all mandatory flags have been provided.
@@ -108,30 +108,4 @@ func readConfig(file string) ConfigItems {
 	}
 
 	return config
-}
-
-// Compare two ConfigItems. Log a message if a key name appears in one but
-// not the other. Submit changes if the actual values doesn't match desired.
-func compareAndUpdate(cloudflare *CloudFlare, zoneID string, configActual, configDesired ConfigItems, dryRun bool) {
-	if reflect.DeepEqual(configActual, configDesired) {
-		log.Println("No config changes to make")
-		return
-	}
-
-	for key, val := range configDesired {
-		if _, ok := configActual[key]; !ok {
-			log.Println("Missing from remote config:", key, val)
-		}
-	}
-
-	for key, valActual := range configActual {
-		if valDesired, ok := configDesired[key]; !ok {
-			log.Println("Missing from local config:", key, valActual)
-		} else if !reflect.DeepEqual(valActual, valDesired) {
-			log.Println("Changing setting:", key, valActual, "->", valDesired)
-			if !dryRun {
-				cloudflare.Set(zoneID, key, valDesired)
-			}
-		}
-	}
 }
