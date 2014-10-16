@@ -28,6 +28,32 @@ var _ = Describe("CloudFlare", func() {
 		server.Close()
 	})
 
+	Describe("CloudFlareSettings", func() {
+		Describe("ConfigItems()", func() {
+			It("should return ConfigItems", func() {
+				settings := CloudFlareSettings{Items: []CloudFlareSetting{
+					CloudFlareSetting{
+						ID:         "always_online",
+						Value:      "off",
+						ModifiedOn: "2014-07-09T11:50:56.595672Z",
+						Editable:   true,
+					},
+					CloudFlareSetting{
+						ID:         "browser_cache_ttl",
+						Value:      14400,
+						ModifiedOn: "2014-07-09T11:50:56.595672Z",
+						Editable:   true,
+					}},
+				}
+
+				Expect(settings.ConfigItems()).To(Equal(ConfigItems{
+					"always_online":     "off",
+					"browser_cache_ttl": 14400,
+				}))
+			})
+		})
+	})
+
 	Describe("Zones()", func() {
 		BeforeEach(func() {
 			server.AppendHandlers(
@@ -170,7 +196,7 @@ var _ = Describe("CloudFlare", func() {
 		It("should return two CloudFlareSettings", func() {
 			settings, err := cloudFlare.Settings(zoneID)
 
-			Expect(settings).To(Equal([]CloudFlareSetting{
+			Expect(settings).To(Equal(CloudFlareSettings{Items: []CloudFlareSetting{
 				CloudFlareSetting{
 					ID:         "always_online",
 					Value:      "off",
@@ -183,7 +209,7 @@ var _ = Describe("CloudFlare", func() {
 					ModifiedOn: "2014-07-09T11:50:56.595672Z",
 					Editable:   true,
 				},
-			}))
+			}}))
 			Expect(err).To(BeNil())
 		})
 	})

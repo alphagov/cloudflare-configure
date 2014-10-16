@@ -32,6 +32,19 @@ type CloudFlareSetting struct {
 	Editable   bool
 }
 
+type CloudFlareSettings struct {
+	Items []CloudFlareSetting
+}
+
+func (c *CloudFlareSettings) ConfigItems() ConfigItems {
+	config := ConfigItems{}
+	for _, setting := range c.Items {
+		config[setting.ID] = setting.Value
+	}
+
+	return config
+}
+
 type CloudFlareRequestItem struct {
 	Value interface{} `json:"value"`
 }
@@ -59,19 +72,20 @@ func (c *CloudFlare) Set(zone, id string, val interface{}) error {
 	return err
 }
 
-func (c *CloudFlare) Settings(zoneID string) ([]CloudFlareSetting, error) {
+func (c *CloudFlare) Settings(zoneID string) (CloudFlareSettings, error) {
+	var settings CloudFlareSettings
+
 	req, err := c.Query.NewRequest("GET", fmt.Sprintf("/zones/%s/settings", zoneID))
 	if err != nil {
-		return nil, err
+		return settings, err
 	}
 
 	response, err := c.MakeRequest(req)
 	if err != nil {
-		return nil, err
+		return settings, err
 	}
 
-	var settings []CloudFlareSetting
-	err = json.Unmarshal(response.Result, &settings)
+	err = json.Unmarshal(response.Result, &settings.Items)
 
 	return settings, err
 }
