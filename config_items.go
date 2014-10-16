@@ -16,12 +16,12 @@ func (c ConfigMismatch) Error() string {
 
 type ConfigItems map[string]interface{}
 
-type ConfigItemsForUpdate map[string]ConfigItemForUpdate
-
 type ConfigItemForUpdate struct {
 	Current  interface{}
 	Expected interface{}
 }
+
+type ConfigItemsForUpdate map[string]ConfigItemForUpdate
 
 func CompareConfigItemsForUpdate(current, expected ConfigItems) (ConfigItemsForUpdate, error) {
 	union := UnionConfigItems(current, expected)
