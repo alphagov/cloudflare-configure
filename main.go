@@ -1,87 +1,115 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
+
+	"gopkg.in/jwaldrip/odin.v1/cli"
 )
 
+const flagRequiredDefault = "REQUIRED"
+
+var app = cli.New(Version, "CloudFlare Configure", exitWithUsage)
+
+func init() {
+	app.DefineStringFlag("email", flagRequiredDefault, "Authentication email address")
+	app.DefineStringFlag("key", flagRequiredDefault, "Authentication key")
+
+	zones := app.DefineSubCommand("zones", "List available zones by name and ID", zones)
+	zones.InheritFlags("email", "key")
+
+	download := app.DefineSubCommand("download", "Download configuration to file", download)
+	download.InheritFlags("email", "key")
+	download.DefineParams("zone_id", "file")
+
+	upload := app.DefineSubCommand("upload", "Upload configuration from file", upload)
+	upload.InheritFlags("email", "key")
+	upload.DefineParams("zone_id", "file")
+	upload.DefineBoolFlag("dry-run", false, "Log changes without actioning them")
+}
+
 func main() {
-	var (
-		authEmail  = flag.String("email", "", "Authentication email address [required]")
-		authKey    = flag.String("key", "", "Authentication key [required]")
-		zoneID     = flag.String("zone", "", "Zone ID [required]")
-		configFile = flag.String("file", "", "Config file [required]")
-		download   = flag.Bool("download", false, "Download configuration")
-		listZones  = flag.Bool("list-zones", false, "List zone IDs and names")
-		dryRun     = flag.Bool("dry-run", false, "Don't submit changes")
-	)
+	app.Start()
+}
 
-	flag.Parse()
-	checkRequiredFlags([]string{"email", "key"})
-
+func setup(cmd cli.Command) *CloudFlare {
 	query := &CloudFlareQuery{
-		AuthEmail: *authEmail,
-		AuthKey:   *authKey,
+		AuthEmail: getRequiredFlag(cmd, "email"),
+		AuthKey:   getRequiredFlag(cmd, "key"),
 		RootURL:   "https://api.cloudflare.com/v4",
 	}
 	logger := log.New(os.Stdout, "", log.LstdFlags)
-	cloudflare := NewCloudFlare(query, logger)
 
-	if *listZones {
-		zones, err := cloudflare.Zones()
-		if err != nil {
-			log.Fatal("Couldn't get zones", err)
-		}
-		printZones(zones)
-		return
+	return NewCloudFlare(query, logger)
+}
+
+func getRequiredFlag(cmd cli.Command, name string) string {
+	val := cmd.Flag(name).String()
+	if val == flagRequiredDefault {
+		fmt.Print("missing flag: ", name, "\n\n")
+		exitWithUsage(cmd)
 	}
 
-	checkRequiredFlags([]string{"zone", "file"})
-	settings, err := cloudflare.Settings(*zoneID)
-	if err != nil {
-		log.Fatal("Couldn't read settings", err)
-	}
-	config := settings.ConfigItems()
+	return val
+}
 
-	if *download {
-		log.Println("Saving configuration..")
-		err := SaveConfigItems(config, *configFile)
-		if err != nil {
-			log.Fatalln(err)
-		}
+func exitWithUsage(cmd cli.Command) {
+	cmd.Usage()
+	os.Exit(2)
+}
 
-		return
-	}
-
-	configDesired, err := LoadConfigItems(*configFile)
+func zones(cmd cli.Command) {
+	cloudflare := setup(cmd)
+	zones, err := cloudflare.Zones()
 	if err != nil {
 		log.Fatalln(err)
 	}
 
-	configUpdate, err := CompareConfigItemsForUpdate(config, configDesired)
-	if err != nil {
-		log.Fatalln(err)
-	}
-
-	cloudflare.Update(*zoneID, configUpdate, *dryRun)
-}
-
-// Ensure that all mandatory flags have been provided.
-func checkRequiredFlags(names []string) {
-	for _, name := range names {
-		f := flag.Lookup(name)
-		if f.Value.String() == f.DefValue {
-			flag.Usage()
-			os.Exit(1)
-		}
-	}
-}
-
-// Output zone IDs and names.
-func printZones(zones []CloudFlareZoneItem) {
 	for _, zone := range zones {
 		fmt.Println(zone.ID, "\t", zone.Name)
+	}
+}
+
+func download(cmd cli.Command) {
+	cloudflare := setup(cmd)
+	settings, err := cloudflare.Settings(cmd.Param("zone_id").String())
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	file := cmd.Param("file").String()
+	log.Println("Saving config to:", file)
+
+	err = SaveConfigItems(settings.ConfigItems(), file)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func upload(cmd cli.Command) {
+	cloudflare := setup(cmd)
+	zone := cmd.Param("zone_id").String()
+
+	settings, err := cloudflare.Settings(zone)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	configActual := settings.ConfigItems()
+	configDesired, err := LoadConfigItems(cmd.Param("file").String())
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	configUpdate, err := CompareConfigItemsForUpdate(configActual, configDesired)
+	if err != nil {
+		log.Fatalln(err)
+	}
+
+	logOnly := (cmd.Flag("dry-run").Get() == true)
+	err = cloudflare.Update(zone, configUpdate, logOnly)
+	if err != nil {
+		log.Fatalln(err)
 	}
 }
