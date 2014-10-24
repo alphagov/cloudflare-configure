@@ -1,7 +1,12 @@
 {
 	"ImportPath": "github.com/alphagov/cloudflare-configure",
-	"GoVersion": "go1.3.1",
+	"GoVersion": "go1.2.1",
 	"Deps": [
+		{
+			"ImportPath": "github.com/jwaldrip/odin/cli/values",
+			"Comment": "v1.5.0",
+			"Rev": "355cc891cfa6999bfdbcf8432b211762c226244d"
+		},
 		{
 			"ImportPath": "github.com/onsi/ginkgo",
 			"Comment": "v1.1.0-20-g75d0cd9",
@@ -11,6 +16,11 @@
 			"ImportPath": "github.com/onsi/gomega",
 			"Comment": "v1.0-19-g835b5e4",
 			"Rev": "835b5e4242c715976b98ed6bc6ece1d9c7879f66"
+		},
+		{
+			"ImportPath": "gopkg.in/jwaldrip/odin.v1/cli",
+			"Comment": "v1.5.0",
+			"Rev": "355cc891cfa6999bfdbcf8432b211762c226244d"
 		}
 	]
 }
