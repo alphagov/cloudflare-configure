@@ -145,7 +145,7 @@ var _ = Describe("CloudFlare", func() {
 				resp, err := cloudFlare.MakeRequest(req)
 
 				Expect(resp).To(BeNil())
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(MatchError(`Response body indicated failure, response: main.CloudFlareResponse{Success:false, Errors:[]main.CloudFlareError{}, Messages:[]string{}, Result:json.RawMessage{0x5b, 0x5d}}`))
 			})
 		})
 
@@ -168,7 +168,7 @@ var _ = Describe("CloudFlare", func() {
 				resp, err := cloudFlare.MakeRequest(req)
 
 				Expect(resp).To(BeNil())
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(MatchError(`Response body indicated failure, response: main.CloudFlareResponse{Success:true, Errors:[]main.CloudFlareError{main.CloudFlareError{Code:1000, Message:"something bad"}}, Messages:[]string{}, Result:json.RawMessage{0x5b, 0x5d}}`))
 			})
 		})
 
@@ -186,7 +186,7 @@ var _ = Describe("CloudFlare", func() {
 				resp, err := cloudFlare.MakeRequest(req)
 
 				Expect(resp).To(BeNil())
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(MatchError("invalid character 's' looking for beginning of value"))
 			})
 		})
 
@@ -204,7 +204,7 @@ var _ = Describe("CloudFlare", func() {
 				resp, err := cloudFlare.MakeRequest(req)
 
 				Expect(resp).To(BeNil())
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(MatchError("Didn't get 200 response, body: something invalid"))
 			})
 		})
 	})
