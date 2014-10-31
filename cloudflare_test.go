@@ -103,6 +103,29 @@ var _ = Describe("CloudFlare", func() {
 			req, _ = query.NewRequest("GET", "/something")
 		})
 
+		Context("200, success: true, errors: []", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/something"),
+						ghttp.RespondWith(http.StatusOK, `{
+							"errors": [],
+							"messages": [],
+							"result": [],
+							"success": true
+						}`),
+					),
+				)
+			})
+
+			It("should not return error", func() {
+				resp, err := cloudFlare.MakeRequest(req)
+
+				Expect(resp).ToNot(BeNil())
+				Expect(err).To(BeNil())
+			})
+		})
+
 		Context("200, success: false, errors: []", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
