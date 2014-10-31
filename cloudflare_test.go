@@ -172,12 +172,30 @@ var _ = Describe("CloudFlare", func() {
 			})
 		})
 
-		Context("500, empty body", func() {
+		Context("200, non-JSON body", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/something"),
-						ghttp.RespondWith(http.StatusServiceUnavailable, ""),
+						ghttp.RespondWith(http.StatusOK, "something invalid"),
+					),
+				)
+			})
+
+			It("should return error", func() {
+				resp, err := cloudFlare.MakeRequest(req)
+
+				Expect(resp).To(BeNil())
+				Expect(err).ToNot(BeNil())
+			})
+		})
+
+		Context("500, non-JSON body", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/something"),
+						ghttp.RespondWith(http.StatusServiceUnavailable, "something invalid"),
 					),
 				)
 			})
