@@ -149,13 +149,16 @@ var _ = Describe("CloudFlare", func() {
 			})
 		})
 
-		Context("200, success: true, errors: [something bad]", func() {
+		Context("200, success: true, errors: [code: 1000, message: something bad]", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/something"),
 						ghttp.RespondWith(http.StatusOK, `{
-							"errors": ["something bad"],
+							"errors": [{
+								"code": 1000,
+								"message": "something bad"
+							}],
 							"messages": [],
 							"result": [],
 							"success": true
