@@ -57,6 +57,9 @@ Use the `--help` argument to see all of the sub-commands and flags available.
 
 The following caveats and limitations should be borne in mind:
 
+- It can't manage "page rules", which are used to configure protocol
+  redirects or caching of all content types, because they aren't currently
+  supported by the API.
 - If the key names in the local and remote configurations differ, for
   example if you have made a typo or CloudFlare introduce a new feature,
   then a message will be logged and you will need to update your
