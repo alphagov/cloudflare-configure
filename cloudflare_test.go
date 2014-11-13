@@ -103,6 +103,29 @@ var _ = Describe("CloudFlare", func() {
 			req, _ = query.NewRequest("GET", "/something")
 		})
 
+		Context("200, success: true, errors: []", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/something"),
+						ghttp.RespondWith(http.StatusOK, `{
+							"errors": [],
+							"messages": [],
+							"result": [],
+							"success": true
+						}`),
+					),
+				)
+			})
+
+			It("should not return error", func() {
+				resp, err := cloudFlare.MakeRequest(req)
+
+				Expect(resp).ToNot(BeNil())
+				Expect(err).To(BeNil())
+			})
+		})
+
 		Context("200, success: false, errors: []", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
@@ -122,17 +145,20 @@ var _ = Describe("CloudFlare", func() {
 				resp, err := cloudFlare.MakeRequest(req)
 
 				Expect(resp).To(BeNil())
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(MatchError(`Response body indicated failure, response: main.CloudFlareResponse{Success:false, Errors:[]main.CloudFlareError{}, Messages:[]string{}, Result:json.RawMessage{0x5b, 0x5d}}`))
 			})
 		})
 
-		Context("200, success: true, errors: [something bad]", func() {
+		Context("200, success: true, errors: [code: 1000, message: something bad]", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/something"),
 						ghttp.RespondWith(http.StatusOK, `{
-							"errors": ["something bad"],
+							"errors": [{
+								"code": 1000,
+								"message": "something bad"
+							}],
 							"messages": [],
 							"result": [],
 							"success": true
@@ -145,16 +171,16 @@ var _ = Describe("CloudFlare", func() {
 				resp, err := cloudFlare.MakeRequest(req)
 
 				Expect(resp).To(BeNil())
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(MatchError(`Response body indicated failure, response: main.CloudFlareResponse{Success:true, Errors:[]main.CloudFlareError{main.CloudFlareError{Code:1000, Message:"something bad"}}, Messages:[]string{}, Result:json.RawMessage{0x5b, 0x5d}}`))
 			})
 		})
 
-		Context("500, empty body", func() {
+		Context("200, non-JSON body", func() {
 			BeforeEach(func() {
 				server.AppendHandlers(
 					ghttp.CombineHandlers(
 						ghttp.VerifyRequest("GET", "/something"),
-						ghttp.RespondWith(http.StatusServiceUnavailable, ""),
+						ghttp.RespondWith(http.StatusOK, "something invalid"),
 					),
 				)
 			})
@@ -163,7 +189,25 @@ var _ = Describe("CloudFlare", func() {
 				resp, err := cloudFlare.MakeRequest(req)
 
 				Expect(resp).To(BeNil())
-				Expect(err).ToNot(BeNil())
+				Expect(err).To(MatchError("invalid character 's' looking for beginning of value"))
+			})
+		})
+
+		Context("500, non-JSON body", func() {
+			BeforeEach(func() {
+				server.AppendHandlers(
+					ghttp.CombineHandlers(
+						ghttp.VerifyRequest("GET", "/something"),
+						ghttp.RespondWith(http.StatusServiceUnavailable, "something invalid"),
+					),
+				)
+			})
+
+			It("should return error", func() {
+				resp, err := cloudFlare.MakeRequest(req)
+
+				Expect(resp).To(BeNil())
+				Expect(err).To(MatchError("Didn't get 200 response, body: something invalid"))
 			})
 		})
 	})
