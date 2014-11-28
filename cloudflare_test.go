@@ -303,34 +303,23 @@ var _ = Describe("CloudFlare", func() {
 		settingValAlwaysOnline := "on"
 		settingValBrowserCache := 123
 
-		BeforeEach(func() {
-			server.RouteToHandler("PATCH", fmt.Sprintf("/zones/%s/settings/always_online", zoneID),
-				ghttp.CombineHandlers(
-					ghttp.VerifyJSON(fmt.Sprintf(`{"value": "%s"}`, settingValAlwaysOnline)),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, CloudFlareResponse{Success: true}),
-				),
-			)
-			server.RouteToHandler("PATCH", fmt.Sprintf("/zones/%s/settings/browser_cache_ttl", zoneID),
-				ghttp.CombineHandlers(
-					ghttp.VerifyJSON(fmt.Sprintf(`{"value": %d}`, settingValBrowserCache)),
-					ghttp.RespondWithJSONEncoded(http.StatusOK, CloudFlareResponse{Success: true}),
-				),
-			)
-			server.RouteToHandler("PATCH", fmt.Sprintf("/zones/%s/settings/non_existent_devops_hero", zoneID),
-				ghttp.CombineHandlers(
-					ghttp.RespondWithJSONEncoded(http.StatusBadRequest, CloudFlareResponse{
-						Success: false,
-						Errors: []CloudFlareError{{
-							Code:    1006,
-							Message: "Unrecognized zone setting name",
-						}},
-					}),
-				),
-			)
-		})
-
 		Context("logOnly false", func() {
 			logOnly := false
+
+			BeforeEach(func() {
+				server.RouteToHandler("PATCH", fmt.Sprintf("/zones/%s/settings/always_online", zoneID),
+					ghttp.CombineHandlers(
+						ghttp.VerifyJSON(fmt.Sprintf(`{"value": "%s"}`, settingValAlwaysOnline)),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, CloudFlareResponse{Success: true}),
+					),
+				)
+				server.RouteToHandler("PATCH", fmt.Sprintf("/zones/%s/settings/browser_cache_ttl", zoneID),
+					ghttp.CombineHandlers(
+						ghttp.VerifyJSON(fmt.Sprintf(`{"value": %d}`, settingValBrowserCache)),
+						ghttp.RespondWithJSONEncoded(http.StatusOK, CloudFlareResponse{Success: true}),
+					),
+				)
+			})
 
 			It("should set two config items and log progress", func() {
 				config := ConfigItemsForUpdate{
@@ -355,31 +344,6 @@ var _ = Describe("CloudFlare", func() {
 				Expect(logbuf).To(gbytes.Say(fmt.Sprintf(
 					`Changing setting "browser_cache_ttl" from <nil> to %d`, settingValBrowserCache,
 				)))
-			})
-
-			It("should return a public error when key is not supported by remote", func() {
-				config := ConfigItemsForUpdate{
-					"non_existent_devops_hero": ConfigItemForUpdate{
-						Current:  nil,
-						Expected: "always devopsing",
-					},
-					"browser_cache_ttl": ConfigItemForUpdate{
-						Current:  nil,
-						Expected: settingValBrowserCache,
-					},
-				}
-
-				Expect(cloudFlare.Update(zoneID, config, false)).ToNot(BeNil())
-
-				// TODO:
-				// What happens when we get a non-200 error for a given key we're
-				// trying to set? What should we do and how should it
-				// be handled?
-				//
-				// When ranging over Go arrays order isn't guaranteed,
-				// so the following assertion will flicker until we
-				// can design a better test for it.
-				// Expect(server.ReceivedRequests()).To(HaveLen(1))
 			})
 		})
 
@@ -409,6 +373,45 @@ var _ = Describe("CloudFlare", func() {
 				Eventually(logbuf).Should(gbytes.Say(fmt.Sprintf(
 					`Would have changed setting "browser_cache_ttl" from <nil> to %d`, settingValBrowserCache,
 				)))
+			})
+		})
+
+		Context("errors when updating many", func() {
+			BeforeEach(func() {
+				unrecognisedSettingHandler := ghttp.CombineHandlers(
+					ghttp.RespondWithJSONEncoded(http.StatusBadRequest, CloudFlareResponse{
+						Success: false,
+						Errors: []CloudFlareError{{
+							Code:    1006,
+							Message: "Unrecognized zone setting name",
+						}},
+					}),
+				)
+
+				server.RouteToHandler("PATCH",
+					fmt.Sprintf("/zones/%s/settings/unicorns", zoneID),
+					unrecognisedSettingHandler,
+				)
+				server.RouteToHandler("PATCH",
+					fmt.Sprintf("/zones/%s/settings/devops_team", zoneID),
+					unrecognisedSettingHandler,
+				)
+			})
+
+			It("should return an error and not continue when key is not supported by remote", func() {
+				config := ConfigItemsForUpdate{
+					"unicorns": ConfigItemForUpdate{
+						Current:  nil,
+						Expected: "mythical",
+					},
+					"devops_team": ConfigItemForUpdate{
+						Current:  nil,
+						Expected: "mythical",
+					},
+				}
+
+				Expect(cloudFlare.Update(zoneID, config, false)).ToNot(BeNil())
+				Expect(server.ReceivedRequests()).To(HaveLen(1))
 			})
 		})
 	})
